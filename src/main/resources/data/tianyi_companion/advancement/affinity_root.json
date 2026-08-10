@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:summon_tianyi",
+  "display": {
+    "icon": { "id": "tianyi_companion:tianyi_heart" },
+    "title": { "translate": "advancements.tianyi_companion.affinity_root.title" },
+    "description": { "translate": "advancements.tianyi_companion.affinity_root.description" },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": { "started": { "trigger": "minecraft:impossible" } }
+}

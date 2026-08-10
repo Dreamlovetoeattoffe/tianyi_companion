@@ -1,0 +1,14 @@
+{
+  "parent": "tianyi_companion:change_skin",
+  "display": {
+    "icon": { "id": "minecraft:chest" },
+    "title": { "translate": "advancements.tianyi_companion.all_skins.title" },
+    "description": { "translate": "advancements.tianyi_companion.all_skins.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } },
+  "rewards": { "experience": 500 }
+}

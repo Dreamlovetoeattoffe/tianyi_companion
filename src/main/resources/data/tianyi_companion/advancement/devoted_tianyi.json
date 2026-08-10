@@ -1,0 +1,15 @@
+{
+  "parent": "tianyi_companion:feed_tianyi",
+  "display": {
+    "icon": { "id": "tianyi_companion:tianyi_heart" },
+    "title": { "translate": "advancements.tianyi_companion.devoted_tianyi.title" },
+    "description": { "translate": "advancements.tianyi_companion.devoted_tianyi.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" }
+  },
+  "rewards": { "experience": 100 }
+}

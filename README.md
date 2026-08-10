@@ -1,25 +1,87 @@
+# 天依相伴（Tianyi Companion）
 
-Installation information
-=======
+适用于 Minecraft Java 版 1.21.1、NeoForge 21.1.235 的伙伴型 NPC 模组。
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+## 安装
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+1. 安装 Minecraft 1.21.1 与 NeoForge 21.1.235（同一 21.1.x 新版本通常也可运行）。
+2. 将 `build/libs/tianyi_companion-0.1.0.jar` 放入游戏实例的 `mods` 文件夹。
+3. 客户端和多人服务器都需要安装本模组；不需要 YSM 或 GeckoLib。
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+## 合成
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+- 面团：使用 Farmer’s Delight 提供的面团（`farmersdelight:wheat_dough`）；该模组自带小麦与水桶的面团配方。
+- 生小笼包：用 8 个面团包围 1 个生猪肉，一次得到 8 个生小笼包。
+- 蒸熟小笼包：把生小笼包放进熔炉，烧制 10 秒得到熟小笼包。
+- 天依召唤符：工作台中心放蛋糕，周围 8 格放小笼包。
+- 天依复苏之心：工作台中心放天依爱心，周围 8 格放小笼包。
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+拿召唤符或复苏之心右键方块即可召唤。每名玩家同时只能拥有一只天依。
+
+## 互动
+
+- 手持食物右键：投喂、治疗天依并增加好感度。
+- 潜行右键：切换跟随/等待。
+- 空手普通右键：打开精简的天依物品栏，仅包含 3×9 主背包、4 个盔甲槽和人物预览区域；下方保留玩家自己的物品栏用于快速转移物品。
+- 天依初始最大生命值为 20；好感度每增加 100 点，最大生命值增加 1 点。
+- 关系等级依次为：0–199 初识、200–599 相识、600–999 亲近、1000–1499 知心、1500 及以上挚爱；每次升级都会完成对应进度。
+- 好感度达到 200 后解锁主动音符攻击；达到 600 后为附近主人提供速度；达到 1000 后增强治疗；达到 1500 后在紧急治疗时追加伤害吸收和抗性。
+- 音符伤害初始为 1 点，200–1000 好感度期间每 200 点增加 1 点并在 1000 点达到 5 点；超过 1000 后每 500 点再增加 1 点，无上限。
+- 解锁音符攻击后，天依物品栏会在好感度数值下方显示当前音符伤害。
+- 主人生命低于 60% 且在 12 格内时，天依每 20 秒检查一次：优先消耗物品栏中的食物治疗主人；没有食物时使用治疗歌声。
+- 玩家攻击天依时，每次成功造成伤害会降低 5 点好感度。
+
+## 好感度食物
+
+所有带有原版食物属性的物品都可以投喂天依。若某种食物没有单独配置好感度值，则基础值 `A` 就是该食物回复的饱食度（营养值）。熟小笼包的营养值为 8，但特殊基础值 `A=12`。
+
+天依会为每只实体记录最近 100 次投喂：当前食物在这 100 次记录中出现 `K` 次时，修正系数为 `r = max(0, ceil(10 - K / 7) / 10)`，本次实际增加 `A × r` 点好感度（游戏中的整数结果向下取整）。达到 70 次重复投喂后，该食物暂时不会再增加好感度，但仍会被记录并正常触发食物效果；记录会随新投喂自动淘汰最早条目。
+
+熟小笼包使用其食物属性计算，生小笼包没有食物属性，不能直接投喂。好感度范围为 0–712712，并分为“初识、相识、亲近、知心、挚爱”五档：20 点解锁主动音符攻击；40 点在附近为主人提供速度；60 点增强治疗；80 点在紧急治疗时追加伤害吸收和抗性。音符伤害也会随好感度增长。
+
+## 换装
+
+打开天依的物品栏后，在背包左侧有一个换装按钮，点击即可在下一条服装之间循环切换，按钮上会显示当前服装的名称，角色预览也会同步改变。天依的物品栏右下角仍可用指令切换皮肤。
+
+任何玩家都可以用指令切换自己的天依皮肤：
+
+```
+/tianyi skin <0-5>
+```
+
+- `0`：默认皮肤
+- `1`：原版洛天依
+- `2`：V4 公式服
+- `3`：饿师傅
+- `4`：全员夏日（眯眼）
+- `5`：额外变体
+
+皮肤选择会保存到天依实体的数据中，重启服务器后不会丢失。
+
+## 与天依对话（AI）
+
+1. 打开天依的物品栏，点击右侧的「AI配置」按钮。
+2. 填入兼容 OpenAI 的 API 地址（默认 `https://api.openai.com/v1/chat/completions`）、密钥、模型名，以及你想给天依的「人格设定」，点「保存」。配置保存在客户端的 `config/tianyi_ai.json`。
+3. 按 **X 键** 打开对话界面，输入内容回车发送。天依会用你设定的人格回应。对话为纯客户端功能，请求在你的本机发起，不会同步给其他人。
+
+支持任意 OpenAI 兼容接口（OpenAI / DeepSeek / 通义千问 / Ollama 本地等），密钥仅存本地。
+
+## 死亡和复活
+
+天依死亡后会在原地留下墓碑并解除唯一召唤占用。只有主人能右键墓碑取出“天依爱心”。将爱心放在工作台中心、周围摆满 8 个小笼包即可合成复苏之心，右键方块让天依以 50 好感度复活。
+
+## 开发构建
+
+需要 Java 21。工程自带 Gradle Wrapper：
+
+```powershell
+.\gradlew.bat build
+```
+
+构建产物位于 `build/libs/`。模型使用 Minecraft slim 玩家模型；实体皮肤位于 `src/main/resources/assets/tianyi_companion/textures/entity/tianyi.png`。
+
+## 美术来源说明
+
+- 当前实体皮肤由项目使用者提供（根目录原文件：`洛天依V4（AI）.png`）。
+- `docs/tianyi_companion_concept.png` 是开发期间通过 OpenAI 内置 ImageGen 生成的原创视觉参考，不参与游戏渲染。
+- 洛天依名称和角色相关权利属于其各自权利人；发布或商业使用前请自行确认授权范围。

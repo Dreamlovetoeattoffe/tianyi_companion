@@ -1,0 +1,14 @@
+{
+  "parent": "tianyi_companion:arm_tianyi",
+  "display": {
+    "icon": { "id": "minecraft:netherite_chestplate" },
+    "title": { "translate": "advancements.tianyi_companion.full_armor_tianyi.title" },
+    "description": { "translate": "advancements.tianyi_companion.full_armor_tianyi.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } },
+  "rewards": { "experience": 100 }
+}

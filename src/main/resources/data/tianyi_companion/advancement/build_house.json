@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:build_skill",
+  "display": {
+    "icon": { "id": "minecraft:oak_door" },
+    "title": { "translate": "advancements.tianyi_companion.build_house.title" },
+    "description": { "translate": "advancements.tianyi_companion.build_house.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "built": { "trigger": "minecraft:impossible" } }
+}

@@ -1,0 +1,14 @@
+{
+  "parent": "tianyi_companion:affinity_712412",
+  "display": {
+    "icon": { "id": "tianyi_companion:xiaolongbao" },
+    "title": { "translate": "advancements.tianyi_companion.affinity_712712.title" },
+    "description": { "translate": "advancements.tianyi_companion.affinity_712712.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } },
+  "rewards": { "experience": 7127 }
+}

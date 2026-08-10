@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:summon_tianyi",
+  "display": {
+    "icon": { "id": "tianyi_companion:xiaolongbao" },
+    "title": { "translate": "advancements.tianyi_companion.feed_tianyi.title" },
+    "description": { "translate": "advancements.tianyi_companion.feed_tianyi.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

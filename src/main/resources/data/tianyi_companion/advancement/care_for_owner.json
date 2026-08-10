@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:open_tianyi_inventory",
+  "display": {
+    "icon": { "id": "minecraft:golden_apple" },
+    "title": { "translate": "advancements.tianyi_companion.care_for_owner.title" },
+    "description": { "translate": "advancements.tianyi_companion.care_for_owner.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:relationship_close",
+  "display": {
+    "icon": { "id": "tianyi_companion:tianyi_heart" },
+    "title": { "translate": "advancements.tianyi_companion.relationship_confidant.title" },
+    "description": { "translate": "advancements.tianyi_companion.relationship_confidant.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

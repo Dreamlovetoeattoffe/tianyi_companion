@@ -1,0 +1,13 @@
+{
+  "display": {
+    "icon": { "id": "tianyi_companion:summon_charm" },
+    "title": { "translate": "advancements.tianyi_companion.summon_tianyi.title" },
+    "description": { "translate": "advancements.tianyi_companion.summon_tianyi.description" },
+    "background": "tianyi_companion:textures/gui/advancements/background.png",
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

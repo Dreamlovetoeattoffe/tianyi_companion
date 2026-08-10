@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:affinity_root",
+  "display": {
+    "icon": { "id": "tianyi_companion:xiaolongbao" },
+    "title": { "translate": "advancements.tianyi_companion.relationship_friend.title" },
+    "description": { "translate": "advancements.tianyi_companion.relationship_friend.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

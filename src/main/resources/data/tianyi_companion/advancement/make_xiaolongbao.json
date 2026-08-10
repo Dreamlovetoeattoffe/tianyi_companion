@@ -1,0 +1,18 @@
+{
+  "parent": "tianyi_companion:make_dough",
+  "display": {
+    "icon": { "id": "tianyi_companion:raw_xiaolongbao" },
+    "title": { "translate": "advancements.tianyi_companion.make_xiaolongbao.title" },
+    "description": { "translate": "advancements.tianyi_companion.make_xiaolongbao.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "xiaolongbao": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": { "items": [{ "items": ["tianyi_companion:raw_xiaolongbao"] }] }
+    }
+  }
+}

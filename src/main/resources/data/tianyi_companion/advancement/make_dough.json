@@ -1,0 +1,18 @@
+{
+  "parent": "tianyi_companion:summon_tianyi",
+  "display": {
+    "icon": { "id": "farmersdelight:wheat_dough" },
+    "title": { "translate": "advancements.tianyi_companion.make_dough.title" },
+    "description": { "translate": "advancements.tianyi_companion.make_dough.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "dough": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": { "items": [{ "items": ["farmersdelight:wheat_dough"] }] }
+    }
+  }
+}

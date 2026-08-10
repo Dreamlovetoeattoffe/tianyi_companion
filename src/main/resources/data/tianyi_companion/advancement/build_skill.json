@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:summon_tianyi",
+  "display": {
+    "icon": { "id": "minecraft:oak_planks" },
+    "title": { "translate": "advancements.tianyi_companion.build_skill.title" },
+    "description": { "translate": "advancements.tianyi_companion.build_skill.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "learned": { "trigger": "minecraft:impossible" } }
+}

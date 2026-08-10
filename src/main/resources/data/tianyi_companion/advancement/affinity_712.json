@@ -1,0 +1,14 @@
+{
+  "parent": "tianyi_companion:affinity_412",
+  "display": {
+    "icon": { "id": "tianyi_companion:tianyi_heart" },
+    "title": { "translate": "advancements.tianyi_companion.affinity_712.title" },
+    "description": { "translate": "advancements.tianyi_companion.affinity_712.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } },
+  "rewards": { "experience": 712 }
+}

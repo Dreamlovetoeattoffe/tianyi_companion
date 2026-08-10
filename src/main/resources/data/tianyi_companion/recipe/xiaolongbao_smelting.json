@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "ingredient": { "item": "tianyi_companion:raw_xiaolongbao" },
+  "result": { "id": "tianyi_companion:xiaolongbao" },
+  "experience": 0.35,
+  "cookingtime": 200
+}
