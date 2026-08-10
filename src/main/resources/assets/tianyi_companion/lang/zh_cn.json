@@ -29,6 +29,7 @@
   "command.tianyi_companion.not_player": "只有玩家可以执行这条指令",
   "command.tianyi_companion.no_companion": "你还没有召唤天依",
   "command.tianyi_companion.skin_set": "天依已更换皮肤：%s",
+  "command.tianyi_companion.affinity_set": "天依的好感度已设置为：%s",
   "skin.tianyi_companion.default": "默认",
   "skin.tianyi_companion.original": "经典",
   "skin.tianyi_companion.v4formula": "V4公式",
