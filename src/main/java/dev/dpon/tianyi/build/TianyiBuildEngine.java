@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -43,6 +44,7 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
 import java.util.ArrayList;
@@ -81,17 +83,19 @@ public final class TianyiBuildEngine {
         final UUID ownerUUID;
         final int rate;
         final Vec3 center;
+        final AABB box;
         Phase phase = Phase.MOVING;
         int index;
         int ticksInPhase;
         int fxTick;
 
-        BuildJob(List<Cell> cells, BlockPos anchor, UUID ownerUUID, int rate, Vec3 center) {
+        BuildJob(List<Cell> cells, BlockPos anchor, UUID ownerUUID, int rate, Vec3 center, AABB box) {
             this.cells = cells;
             this.anchor = anchor;
             this.ownerUUID = ownerUUID;
             this.rate = rate;
             this.center = center;
+            this.box = box;
         }
 
         void place(ServerLevel level, TianyiEntity tianyi) {
@@ -125,6 +129,7 @@ public final class TianyiBuildEngine {
                     level.setBlock(pos, cell.state(), cell.attachable() ? PLACE_ATTACH : PLACE_SOLID);
                     placeSibling(level, cell.state(), pos);
                 }
+                removeItemsAt(level, pos);
                 if (!cell.isAir() && ++fxTick % 4 == 0) {
                     level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, cell.state()),
                             pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 3, 0.2D, 0.2D, 0.2D, 0.02D);
@@ -132,6 +137,7 @@ public final class TianyiBuildEngine {
                 }
                 placed++;
             }
+            purgeStuckItems(level, this);
             if (index >= cells.size()) phase = Phase.FINISHED;
         }
     }
@@ -152,6 +158,7 @@ public final class TianyiBuildEngine {
             BlockState otherState = state.setValue(BedBlock.PART, head ? BedPart.FOOT : BedPart.HEAD);
             if (!level.getBlockState(other).equals(otherState)) {
                 level.setBlock(other, otherState, PLACE_ATTACH);
+                removeItemsAt(level, other);
             }
         } else if (b instanceof DoorBlock) {
             boolean lower = state.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
@@ -159,6 +166,7 @@ public final class TianyiBuildEngine {
             BlockState otherState = state.setValue(DoorBlock.HALF, lower ? DoubleBlockHalf.UPPER : DoubleBlockHalf.LOWER);
             if (!level.getBlockState(other).equals(otherState)) {
                 level.setBlock(other, otherState, PLACE_ATTACH);
+                removeItemsAt(level, other);
             }
         }
     }
@@ -220,7 +228,7 @@ public final class TianyiBuildEngine {
 
         boolean creative = player.getAbilities().instabuild;
         BuildJob job = new BuildJob(cells, anchor.immutable(), player.getUUID(),
-                creative ? 5 : 2, computeCenter(cells));
+                creative ? 5 : 2, computeCenter(cells), computeBox(cells));
         tianyi.setActiveBuild(job);
         player.displayClientMessage(Component.translatable("message.tianyi_companion.build_started"), false);
         tianyi.getNavigation().moveTo(anchor.getX() + 2.5D, anchor.getY(), anchor.getZ() - 3.5D, 1.0D);
@@ -251,6 +259,7 @@ public final class TianyiBuildEngine {
 
     private static void finish(ServerLevel level, TianyiEntity tianyi, BuildJob job) {
         tianyi.setActiveBuild(null);
+        purgeStuckItems(level, job);
         ServerPlayer owner = level.getServer() == null
                 ? null : level.getServer().getPlayerList().getPlayer(job.ownerUUID);
         if (owner != null) {
@@ -674,6 +683,40 @@ public final class TianyiBuildEngine {
         }
         int n = cells.size();
         return new Vec3(x / n, y / n, z / n);
+    }
+
+    /** Axis-aligned bounds of the whole build, used to sweep dropped items afterwards. */
+    private static AABB computeBox(List<Cell> cells) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (Cell c : cells) {
+            BlockPos p = c.pos();
+            minX = Math.min(minX, p.getX());
+            minY = Math.min(minY, p.getY());
+            minZ = Math.min(minZ, p.getZ());
+            maxX = Math.max(maxX, p.getX());
+            maxY = Math.max(maxY, p.getY());
+            maxZ = Math.max(maxZ, p.getZ());
+        }
+        return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+    }
+
+    /** Removes any item entity that just dropped at a placed cell (e.g. grass/flowers cleared by the build). */
+    private static void removeItemsAt(ServerLevel level, BlockPos pos) {
+        for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(0.05D))) {
+            e.discard();
+        }
+    }
+
+    /** Sweeps the build area for item entities that ended up inside solid blocks (stuck in walls). */
+    private static void purgeStuckItems(ServerLevel level, BuildJob job) {
+        for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, job.box)) {
+            if (!e.isAlive()) continue;
+            BlockState st = level.getBlockState(e.blockPosition());
+            if (!st.isAir() && !st.getCollisionShape(level, e.blockPosition()).isEmpty()) {
+                e.discard();
+            }
+        }
     }
 
     private static String missingMaterials(ServerPlayer player, List<Cell> cells) {
