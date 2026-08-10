@@ -120,5 +120,16 @@
   "advancements.tianyi_companion.build_skill.title": "动手的第一晚",
   "advancements.tianyi_companion.build_skill.description": "与天依一起睡满 5 晚，让她学会盖房子",
   "advancements.tianyi_companion.build_house.title": "天依的小屋",
-  "advancements.tianyi_companion.build_house.description": "让天依为你盖起第一栋房子"
+  "advancements.tianyi_companion.build_house.description": "让天依为你盖起第一栋房子",
+  "message.tianyi_companion.daily_gift": "天依醒来后送给主人一份礼物：%s",
+  "advancements.tianyi_companion.gift_first.title": "早安的礼物",
+  "advancements.tianyi_companion.gift_first.description": "清晨醒来，收到天依送的第一份礼物",
+  "advancements.tianyi_companion.gift_mineral.title": "你的矿工歌姬",
+  "advancements.tianyi_companion.gift_mineral.description": "好感度达到 712 后，收到天依送的矿物",
+  "advancements.tianyi_companion.gift_precious.title": "千金不换",
+  "advancements.tianyi_companion.gift_precious.description": "好感度达到 7120 后，收到天依送的贵重物品",
+  "advancements.tianyi_companion.gift_host.title": "搬运大半个世界",
+  "advancements.tianyi_companion.gift_host.description": "好感度达到 71200 后，除基岩和屏障外的所有物品都可能是礼物",
+  "advancements.tianyi_companion.gift_forbidden.title": "被禁用的礼物",
+  "advancements.tianyi_companion.gift_forbidden.description": "好感度达到 712000 后，连基岩和屏障，她都舍得送给你"
 }

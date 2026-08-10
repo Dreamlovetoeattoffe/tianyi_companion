@@ -38,5 +38,12 @@ public final class NetworkHandler {
                         TianyiBuildEngine.requestBuild(player, payload.anchor(), payload.opsJson());
                     }
                 }));
+        registrar.playToServer(TianyiTalkPayload.TYPE, TianyiTalkPayload.STREAM_CODEC,
+                (payload, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer player) {
+                        TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
+                        if (tianyi != null) tianyi.setTalkingToOwner(payload.start());
+                    }
+                }));
     }
 }

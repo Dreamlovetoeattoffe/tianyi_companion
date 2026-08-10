@@ -1,6 +1,7 @@
 package dev.dpon.tianyi.client;
 
 import dev.dpon.tianyi.network.TianyiBuildPayload;
+import dev.dpon.tianyi.network.TianyiTalkPayload;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -143,6 +144,22 @@ public final class TianyiChatScreen extends Screen {
     private void saveHistory() {
         if (minecraft == null || minecraft.player == null) return;
         history.save(minecraft.player.getStringUUID());
+    }
+
+    @Override
+    public void onClose() {
+        sendTalk(false);
+        super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        sendTalk(false);
+        super.removed();
+    }
+
+    private void sendTalk(boolean start) {
+        PacketDistributor.sendToServer(new TianyiTalkPayload(start));
     }
 
     @Override

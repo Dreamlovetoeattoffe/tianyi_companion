@@ -120,5 +120,16 @@
   "advancements.tianyi_companion.build_skill.title": "A Night of Learning",
   "advancements.tianyi_companion.build_skill.description": "Sleep beside Tianyi for 5 nights and she learns to build",
   "advancements.tianyi_companion.build_house.title": "Tianyi's Cottage",
-  "advancements.tianyi_companion.build_house.description": "Have Tianyi build your first house"
+  "advancements.tianyi_companion.build_house.description": "Have Tianyi build your first house",
+  "message.tianyi_companion.daily_gift": "Tianyi woke up and gave you a gift: %s",
+  "advancements.tianyi_companion.gift_first.title": "Morning Gift",
+  "advancements.tianyi_companion.gift_first.description": "Wake up and receive Tianyi's very first gift",
+  "advancements.tianyi_companion.gift_mineral.title": "Your Miner Songstress",
+  "advancements.tianyi_companion.gift_mineral.description": "After 712 affinity, receive minerals from Tianyi",
+  "advancements.tianyi_companion.gift_precious.title": "Worth Its Weight in Gold",
+  "advancements.tianyi_companion.gift_precious.description": "After 7120 affinity, receive precious items from Tianyi",
+  "advancements.tianyi_companion.gift_host.title": "Moving Half the World",
+  "advancements.tianyi_companion.gift_host.description": "After 71200 affinity, any item but bedrock and barrier can be a gift",
+  "advancements.tianyi_companion.gift_forbidden.title": "The Forbidden Gift",
+  "advancements.tianyi_companion.gift_forbidden.description": "After 712000 affinity, even bedrock and barrier she freely gives away"
 }

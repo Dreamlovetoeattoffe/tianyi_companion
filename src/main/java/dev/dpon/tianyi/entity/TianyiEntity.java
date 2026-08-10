@@ -43,12 +43,18 @@ import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Item;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int MAX_AFFINITY = 712_712;
@@ -65,6 +71,34 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private static final int RECENT_FOOD_LIMIT = 100;
     /** Nights the owner slept near this Tianyi; 5 unlocks the house-building skill. */
     public static final int REQUIRED_SHARED_NIGHTS = 5;
+    private static final String[] GIFT_BASIC = {
+            "minecraft:coal", "minecraft:charcoal", "minecraft:oak_log", "minecraft:spruce_log",
+            "minecraft:birch_log", "minecraft:oak_planks", "minecraft:stone", "minecraft:cobblestone",
+            "minecraft:dirt", "minecraft:sand", "minecraft:gravel", "minecraft:flint", "minecraft:stick",
+            "minecraft:string", "minecraft:wheat", "minecraft:wheat_seeds", "minecraft:carrot",
+            "minecraft:potato", "minecraft:apple", "minecraft:bread", "minecraft:bone",
+            "minecraft:arrow", "minecraft:leather", "minecraft:feather", "minecraft:paper",
+            "minecraft:melon_slice", "minecraft:pumpkin", "minecraft:brown_mushroom", "minecraft:red_mushroom"
+    };
+    private static final String[] GIFT_ORES = {
+            "minecraft:iron_ingot", "minecraft:gold_ingot", "minecraft:copper_ingot",
+            "minecraft:raw_iron", "minecraft:raw_gold", "minecraft:raw_copper",
+            "minecraft:iron_nugget", "minecraft:gold_nugget", "minecraft:redstone",
+            "minecraft:lapis_lazuli", "minecraft:quartz", "minecraft:emerald", "minecraft:amethyst_shard"
+    };
+    private static final String[] GIFT_VALUABLES = {
+            "minecraft:diamond", "minecraft:diamond_sword", "minecraft:diamond_pickaxe",
+            "minecraft:diamond_axe", "minecraft:diamond_shovel", "minecraft:diamond_hoe",
+            "minecraft:diamond_helmet", "minecraft:diamond_chestplate", "minecraft:diamond_leggings",
+            "minecraft:diamond_boots", "minecraft:netherite_scrap", "minecraft:netherite_ingot",
+            "minecraft:netherite_sword", "minecraft:netherite_pickaxe", "minecraft:netherite_axe",
+            "minecraft:netherite_shovel", "minecraft:netherite_hoe",
+            "minecraft:netherite_helmet", "minecraft:netherite_chestplate", "minecraft:netherite_leggings",
+            "minecraft:netherite_boots", "minecraft:netherite_block", "minecraft:diamond_block",
+            "minecraft:gold_block", "minecraft:iron_block", "minecraft:emerald_block",
+            "minecraft:golden_apple", "minecraft:enchanted_golden_apple", "minecraft:elytra",
+            "minecraft:totem_of_undying", "minecraft:ender_pearl", "minecraft:trident", "minecraft:shulker_box"
+    };
     private static final EntityDataAccessor<Boolean> BUILD_SKILL = SynchedEntityData.defineId(TianyiEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> AFFINITY = SynchedEntityData.defineId(TianyiEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> SKIN = SynchedEntityData.defineId(TianyiEntity.class, EntityDataSerializers.INT);
@@ -73,6 +107,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private int careCooldown;
     private int sharedNights;
     private TianyiBuildEngine.BuildJob activeBuild;
+    private boolean talkingToOwner;
+    private int talkingTicks;
 
     public TianyiBuildEngine.BuildJob getActiveBuild() {
         return activeBuild;
@@ -80,6 +116,16 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
 
     public void setActiveBuild(TianyiBuildEngine.BuildJob job) {
         this.activeBuild = job;
+    }
+
+    /** True while the owner is talking with her in the chat screen; she freezes and faces them. */
+    public boolean isTalkingToOwner() {
+        return talkingToOwner;
+    }
+
+    public void setTalkingToOwner(boolean value) {
+        talkingToOwner = value;
+        talkingTicks = 0;
     }
 
     public TianyiEntity(EntityType<? extends TianyiEntity> type, Level level) {
@@ -235,6 +281,21 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     @Override
     public void aiStep() {
         super.aiStep();
+        if (!level().isClientSide && talkingToOwner) {
+            talkingTicks++;
+            Player owner = getOwner() instanceof Player o ? o : null;
+            boolean valid = owner != null && owner.isAlive() && distanceToSqr(owner) <= 2304.0D;
+            if (!valid || talkingTicks > 3600) {
+                talkingToOwner = false;
+            } else {
+                setSpeed(0.0F);
+                setXxa(0.0F);
+                setYya(0.0F);
+                setZza(0.0F);
+                getNavigation().stop();
+                getLookControl().setLookAt(owner.getX(), owner.getEyeY(), owner.getZ(), 10.0F, 10.0F);
+            }
+        }
         if (!level().isClientSide) TianyiBuildEngine.tick(this);
         if (careCooldown > 0) careCooldown--;
         if (!level().isClientSide && tickCount % 100 == 0 && getAffinity() >= 600
@@ -387,6 +448,64 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             setHealth(getMaxHealth());
             addEffect(new MobEffectInstance(MobEffects.REGENERATION, 600, 1));
         }
+    }
+
+    /** On waking up, Tianyi hands the owner one random item from the tier her affection unlocked. */
+    public void giveDailyGift(ServerPlayer owner) {
+        if (level().isClientSide || owner == null) return;
+        long day = level().getDayTime() / 24000L;
+        if (owner.getPersistentData().getLong("TianyiGiftDay") == day) return;
+        owner.getPersistentData().putLong("TianyiGiftDay", day);
+
+        int affinity = getAffinity();
+        List<Item> pool = giftPool(affinity);
+        if (pool.isEmpty()) return;
+        Random random = new Random();
+        Item picked = pool.get(random.nextInt(pool.size()));
+        ItemStack stack = new ItemStack(picked, giftCount(affinity));
+        if (!owner.getInventory().add(stack)) {
+            owner.drop(stack, false);
+        }
+        owner.displayClientMessage(Component.translatable("message.tianyi_companion.daily_gift",
+                stack.getHoverName()), false);
+        TianyiCompanionMod.award(owner, "gift_first");
+        if (affinity >= 712_000) TianyiCompanionMod.award(owner, "gift_forbidden");
+        else if (affinity >= 71_200) TianyiCompanionMod.award(owner, "gift_host");
+        else if (affinity >= 7_120) TianyiCompanionMod.award(owner, "gift_precious");
+        else if (affinity >= 712) TianyiCompanionMod.award(owner, "gift_mineral");
+    }
+
+    private static List<Item> giftPool(int affinity) {
+        List<Item> pool = new ArrayList<>();
+        addGifts(pool, GIFT_BASIC);
+        if (affinity >= 712) addGifts(pool, GIFT_ORES);
+        if (affinity >= 7_120) addGifts(pool, GIFT_VALUABLES);
+        if (affinity >= 71_200) {
+            boolean everything = affinity >= 712_000;
+            Set<String> excluded = everything
+                    ? Set.of()
+                    : Set.of("minecraft:bedrock", "minecraft:barrier");
+            for (Item item : BuiltInRegistries.ITEM) {
+                if (item == Items.AIR) continue;
+                if (excluded.contains(BuiltInRegistries.ITEM.getKey(item).toString())) continue;
+                pool.add(item);
+            }
+        }
+        return pool;
+    }
+
+    private static void addGifts(List<Item> pool, String[] ids) {
+        for (String id : ids) {
+            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.tryParse(id));
+            if (item != null && item != Items.AIR) pool.add(item);
+        }
+    }
+
+    private static int giftCount(int affinity) {
+        Random random = new Random();
+        if (affinity < 712) return 4 + random.nextInt(13);
+        if (affinity < 7_120) return 2 + random.nextInt(7);
+        return 1;
     }
 
     @Override

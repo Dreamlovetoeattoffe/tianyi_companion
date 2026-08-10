@@ -3,6 +3,7 @@ package dev.dpon.tianyi.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.dpon.tianyi.TianyiCompanionMod;
 import dev.dpon.tianyi.entity.TianyiEntity;
+import dev.dpon.tianyi.network.TianyiTalkPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
@@ -14,6 +15,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(modid = TianyiCompanionMod.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public final class TianyiChatInputHandler {
@@ -32,6 +34,7 @@ public final class TianyiChatInputHandler {
             return;
         }
         mc.setScreen(new TianyiChatScreen());
+        PacketDistributor.sendToServer(new TianyiTalkPayload(true));
     }
 
     /** Chat opens when looking at your Tianyi, or when she is nearby (lets you aim at a build site). */

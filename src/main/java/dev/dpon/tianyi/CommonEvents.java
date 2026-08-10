@@ -25,5 +25,6 @@ public final class CommonEvents {
         // 8 blocks around the player's sleeping spot.
         if (tianyi.distanceToSqr(player) > 64.0D) return;
         tianyi.recordSharedNight(player);
+        tianyi.giveDailyGift(player);
     }
 }

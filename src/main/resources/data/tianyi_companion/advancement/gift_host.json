@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:gift_precious",
+  "display": {
+    "icon": { "id": "minecraft:chest" },
+    "title": { "translate": "advancements.tianyi_companion.gift_host.title" },
+    "description": { "translate": "advancements.tianyi_companion.gift_host.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

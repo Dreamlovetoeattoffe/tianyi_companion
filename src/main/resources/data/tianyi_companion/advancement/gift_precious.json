@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:gift_mineral",
+  "display": {
+    "icon": { "id": "minecraft:netherite_ingot" },
+    "title": { "translate": "advancements.tianyi_companion.gift_precious.title" },
+    "description": { "translate": "advancements.tianyi_companion.gift_precious.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}
