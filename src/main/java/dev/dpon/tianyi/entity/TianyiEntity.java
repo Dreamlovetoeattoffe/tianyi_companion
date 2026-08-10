@@ -275,6 +275,11 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     }
 
     @Override
+    public boolean wantsToAttack(LivingEntity target, LivingEntity owner) {
+        return getAffinity() >= 200;
+    }
+
+    @Override
     public void aiStep() {
         super.aiStep();
         if (!level().isClientSide && talkingToOwner) {
