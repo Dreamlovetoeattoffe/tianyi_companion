@@ -10,7 +10,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -68,9 +67,7 @@ import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -107,7 +104,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             "skin.tianyi_companion.summer",
             "skin.tianyi_companion.variant"
     };
-    private static final int RECENT_FOOD_LIMIT = 100;
     /** Nights the owner slept near this Tianyi; 5 unlocks the house-building skill. */
     public static final int REQUIRED_SHARED_NIGHTS = 5;
     /** At this affinity Tianyi climbs into a nearby bed and spends the night with her owner. */
@@ -144,7 +140,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private static final EntityDataAccessor<Integer> AFFINITY = SynchedEntityData.defineId(TianyiEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> SKIN = SynchedEntityData.defineId(TianyiEntity.class, EntityDataSerializers.INT);
     private final TianyiInventoryContainer companionInventory = new TianyiInventoryContainer(this);
-    private final Deque<String> recentFoods = new ArrayDeque<>();
     private int careCooldown;
     private int sharedNights;
     private boolean hateGrabbedWeapon;
@@ -793,10 +788,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                             "message.tianyi_companion.negative_feed", loss), true);
                     if (!player.getAbilities().instabuild) held.shrink(1);
                 } else {
-                    String foodId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
-                    int recentCount = countRecentFood(foodId);
-                    int affection = calculateFoodAffection(held, foodProperties, recentCount);
-                    recordRecentFood(foodId);
+                    int affection = calculateFoodAffection(held, foodProperties);
                     changeAffinity(affection);
                     heal(Math.min(8.0F, affection));
                     applyFoodEffect(held);
@@ -862,33 +854,12 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     }
 
     /**
-     * Calculates the affinity gain from a food using its nutrition value and
-     * the number of times that exact item was recently fed to this entity.
-     * The current food is not included in {@code recentCount} yet.
+     * Calculates the affinity gain from a food using its nutrition value.
+     * Xiaolongbao intentionally has a custom affinity base: its nutrition
+     * is 8, while its affinity value A is 12.
      */
-    private int calculateFoodAffection(ItemStack stack, FoodProperties foodProperties, int recentCount) {
-        // Xiaolongbao intentionally has a custom affinity base: its nutrition
-        // is 8, while its first-feed affinity value A is 12.
-        int baseAffection = stack.is(TianyiCompanionMod.XIAOLONGBAO)
-                ? 12 : foodProperties.nutrition();
-        int modifierTenths = Math.max(0, (int) Math.ceil(10.0D - recentCount / 7.0D));
-        // Affinity is stored as an integer, so fractional results are truncated.
-        return baseAffection * modifierTenths / 10;
-    }
-
-    private int countRecentFood(String foodId) {
-        int count = 0;
-        for (String recentFood : recentFoods) {
-            if (recentFood.equals(foodId)) count++;
-        }
-        return count;
-    }
-
-    private void recordRecentFood(String foodId) {
-        recentFoods.addLast(foodId);
-        while (recentFoods.size() > RECENT_FOOD_LIMIT) {
-            recentFoods.removeFirst();
-        }
+    private int calculateFoodAffection(ItemStack stack, FoodProperties foodProperties) {
+        return stack.is(TianyiCompanionMod.XIAOLONGBAO) ? 12 : foodProperties.nutrition();
     }
 
     @Override
@@ -1051,11 +1022,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         tag.putInt("CareCooldown", careCooldown);
         tag.putBoolean("HateGrabbedWeapon", hateGrabbedWeapon);
         if (helperHuntOwner != null) tag.putUUID("HuntHelperOwner", helperHuntOwner);
-        ListTag recentFoodTag = new ListTag();
-        for (String foodId : recentFoods) {
-            recentFoodTag.add(net.minecraft.nbt.StringTag.valueOf(foodId));
-        }
-        tag.put("RecentFoods", recentFoodTag);
     }
 
     @Override
@@ -1073,16 +1039,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         careCooldown = tag.getInt("CareCooldown");
         hateGrabbedWeapon = tag.getBoolean("HateGrabbedWeapon");
         if (tag.contains("HuntHelperOwner")) helperHuntOwner = tag.getUUID("HuntHelperOwner");
-        recentFoods.clear();
-        if (tag.contains("RecentFoods", 9)) {
-            ListTag recentFoodTag = tag.getList("RecentFoods", 8);
-            for (int i = 0; i < recentFoodTag.size(); i++) {
-                recentFoods.addLast(recentFoodTag.getString(i));
-            }
-            while (recentFoods.size() > RECENT_FOOD_LIMIT) {
-                recentFoods.removeFirst();
-            }
-        }
     }
 
     @Override
