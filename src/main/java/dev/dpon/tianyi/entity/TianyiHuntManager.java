@@ -9,7 +9,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -24,6 +26,8 @@ public final class TianyiHuntManager {
     public static final int HUNT_GROUP_SIZE = 5;
     private static final double HUNT_GROUP_RADIUS = 48.0D;
     private static final Map<UUID, ItemStack> HUNT_WEAPONS = new HashMap<>();
+    /** Hunts that already got their helper pack; killed helpers never respawn. */
+    private static final Set<UUID> HELPERS_DEPLOYED = new HashSet<>();
 
     private TianyiHuntManager() {}
 
@@ -33,6 +37,7 @@ public final class TianyiHuntManager {
 
     public static void endHunt(UUID playerId) {
         HUNT_WEAPONS.remove(playerId);
+        HELPERS_DEPLOYED.remove(playerId);
     }
 
     public static boolean isHunted(UUID playerId) {
@@ -47,9 +52,11 @@ public final class TianyiHuntManager {
         return HUNT_WEAPONS;
     }
 
-    /** Counts Tianyi near the hunted player and summons helpers from thin air so
-     *  that {@link #HUNT_GROUP_SIZE} are hunting them at once. */
+    /** Summons helpers from thin air the first time a hunt starts so that
+     *  {@link #HUNT_GROUP_SIZE} Tianyi are hunting the player at once. Helpers
+     *  are only deployed once per hunt and are never replaced after death. */
     public static void ensureHuntGroup(ServerPlayer huntedPlayer, ServerLevel level) {
+        if (HELPERS_DEPLOYED.contains(huntedPlayer.getUUID())) return;
         int count = level.getEntitiesOfClass(TianyiEntity.class,
                 new AABB(huntedPlayer.blockPosition()).inflate(HUNT_GROUP_RADIUS),
                 entity -> entity.isAlive()).size();
@@ -67,6 +74,9 @@ public final class TianyiHuntManager {
             level.addFreshEntity(helper);
             summoned++;
         }
-        if (summoned > 0) TianyiCompanionMod.award(huntedPlayer, "hunt_pack");
+        if (summoned > 0) {
+            HELPERS_DEPLOYED.add(huntedPlayer.getUUID());
+            TianyiCompanionMod.award(huntedPlayer, "hunt_pack");
+        }
     }
 }

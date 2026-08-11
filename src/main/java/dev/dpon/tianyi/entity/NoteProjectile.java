@@ -45,8 +45,8 @@ public final class NoteProjectile extends Projectile {
     @Override
     public boolean canHitEntity(Entity target) {
         if (!super.canHitEntity(target)) return false;
-        // Notes never hurt Tianyi that were summoned to help with a hunt.
-        return !(target instanceof TianyiEntity tianyi && tianyi.isHuntHelper());
+        // Notes never hurt other Tianyi: the hunting pack must not hurt itself.
+        return !(target instanceof TianyiEntity);
     }
 
     @Override
