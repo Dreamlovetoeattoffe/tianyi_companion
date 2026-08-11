@@ -83,6 +83,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int HUNT_DEATHS_TO_BAN = 7;
     /** Xiaolongbao Tianyi confiscates to forgive a hunted player, or to accept a banned summon. */
     public static final int XIAOLONGBAO_FORGIVE_COUNT = 64;
+    /** Max health Tianyi fights with while hunting a player. */
+    public static final int HUNT_MAX_HEALTH = 712;
     /** Number of skin variants: 0 = default, 1..5 = extra. */
     public static final int MAX_SKIN_INDEX = 5;
     /** Inventory slot she wields as a weapon: the first slot of the last 3x9 row. */
@@ -134,6 +136,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private int careCooldown;
     private int sharedNights;
     private boolean hateGrabbedWeapon;
+    private boolean huntHealed;
     private TianyiBuildEngine.BuildJob activeBuild;
     private boolean talkingToOwner;
     private int talkingTicks;
@@ -253,7 +256,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
 
     private void updateMaxHealthFromAffinity() {
         if (getAttribute(Attributes.MAX_HEALTH) == null) return;
-        double maxHealth = 20.0D + getAffinity() / 100;
+        double maxHealth = getAffinity() <= GLOBAL_HUNT_THRESHOLD
+                ? HUNT_MAX_HEALTH : 20.0D + getAffinity() / 100;
         if (Math.abs(getAttributeValue(Attributes.MAX_HEALTH) - maxHealth) > 0.001D) {
             getAttribute(Attributes.MAX_HEALTH).setBaseValue(maxHealth);
             if (getHealth() > maxHealth) setHealth((float) maxHealth);
@@ -456,6 +460,14 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
      * wherever they are.
      */
     private void updateHateAndHunt() {
+        if (getAffinity() <= GLOBAL_HUNT_THRESHOLD) {
+            if (!huntHealed) {
+                huntHealed = true;
+                setHealth(getMaxHealth());
+            }
+        } else {
+            huntHealed = false;
+        }
         if (getAffinity() <= HATE_THRESHOLD && getOwner() instanceof ServerPlayer owner) {
             if (!hateGrabbedWeapon) {
                 hateGrabbedWeapon = grabStrongestWeaponFrom(owner);
@@ -754,6 +766,11 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
 
         if (held.isEmpty()) {
             if (!level().isClientSide && player instanceof ServerPlayer serverPlayer) {
+                if (TianyiHuntManager.isHunted(serverPlayer.getUUID())) {
+                    serverPlayer.displayClientMessage(Component.translatable(
+                            "message.tianyi_companion.hunt_no_inventory"), true);
+                    return InteractionResult.sidedSuccess(level().isClientSide);
+                }
                 TianyiCompanionMod.award(serverPlayer, "open_tianyi_inventory");
                 serverPlayer.openMenu(new SimpleMenuProvider(
                         (containerId, inventory, menuPlayer) -> new TianyiMenu(containerId, inventory, this),
@@ -917,12 +934,15 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         }
         super.die(source);
         if (!level().isClientSide && !wasDead && this.dead && !isRemoved()) {
-            TianyiGraveEntity grave = new TianyiGraveEntity(level(), getOwnerUUID(), getAffinity());
-            grave.moveTo(getX(), getY(), getZ(), getYRot(), 0.0F);
-            level().addFreshEntity(grave);
             if (getOwner() instanceof ServerPlayer owner) {
                 owner.getPersistentData().remove(TianyiCompanionMod.OWNER_ENTITY_KEY);
-                owner.displayClientMessage(Component.translatable("message.tianyi_companion.grave_placed"), false);
+                // Killed mid-hunt she leaves no grave behind.
+                if (getAffinity() > GLOBAL_HUNT_THRESHOLD) {
+                    TianyiGraveEntity grave = new TianyiGraveEntity(level(), getOwnerUUID(), getAffinity());
+                    grave.moveTo(getX(), getY(), getZ(), getYRot(), 0.0F);
+                    level().addFreshEntity(grave);
+                    owner.displayClientMessage(Component.translatable("message.tianyi_companion.grave_placed"), false);
+                }
             }
         }
     }
