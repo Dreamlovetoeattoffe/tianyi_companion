@@ -37,6 +37,7 @@
   "command.tianyi_companion.no_companion": "You have not summoned Tianyi",
   "command.tianyi_companion.skin_set": "Tianyi's skin changed to: %s",
   "command.tianyi_companion.affinity_set": "Tianyi's affinity set to: %s",
+  "command.tianyi_companion.health_set": "Tianyi's health set to: %s",
   "skin.tianyi_companion.default": "Default",
   "skin.tianyi_companion.original": "Classic",
   "skin.tianyi_companion.v4formula": "V4 Formula",

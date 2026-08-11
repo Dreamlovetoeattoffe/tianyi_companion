@@ -23,7 +23,11 @@ public final class TianyiCommands {
                 .then(Commands.literal("affinity")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.argument("value", IntegerArgumentType.integer(TianyiEntity.MIN_AFFINITY, TianyiEntity.MAX_AFFINITY))
-                                .executes(ctx -> setAffinity(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "value"))))));
+                                .executes(ctx -> setAffinity(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "value")))))
+                .then(Commands.literal("health")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("value", IntegerArgumentType.integer(TianyiEntity.MIN_AFFINITY, 10000))
+                                .executes(ctx -> setHealth(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "value"))))));
     }
 
     private static int setSkin(CommandSourceStack source, int variant) {
@@ -54,6 +58,26 @@ public final class TianyiCommands {
         }
         tianyi.setAffinity(value);
         source.sendSuccess(() -> Component.translatable("command.tianyi_companion.affinity_set", tianyi.getAffinity()), true);
+        return 1;
+    }
+
+    /** Admin-only: set your own Tianyi's health directly. */
+    private static int setHealth(CommandSourceStack source, int value) {
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.translatable("command.tianyi_companion.not_player"));
+            return 0;
+        }
+        TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
+        if (tianyi == null) {
+            source.sendFailure(Component.translatable("command.tianyi_companion.no_companion"));
+            return 0;
+        }
+        if (value > tianyi.getMaxHealth()) {
+            tianyi.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH)
+                    .setBaseValue(value);
+        }
+        tianyi.setHealth(value);
+        source.sendSuccess(() -> Component.translatable("command.tianyi_companion.health_set", tianyi.getHealth()), true);
         return 1;
     }
 }
