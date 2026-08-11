@@ -81,6 +81,7 @@ public final class TianyiCompanionMod {
         modBus.addListener(this::createAttributes);
         NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerClone);
         NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerWakeUp);
+        NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerChangedDimension);
         NeoForge.EVENT_BUS.addListener(TianyiCommands::register);
     }
 

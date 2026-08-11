@@ -25,23 +25,27 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.RangedAttackGoal;
 import net.minecraft.world.entity.ai.goal.SitWhenOrderedToGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ProjectileWeaponItem;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.Level;
@@ -142,7 +146,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
         goalSelector.addGoal(1, new SitWhenOrderedToGoal(this));
-        goalSelector.addGoal(2, new RangedAttackGoal(this, 1.05D, 30, 16.0F));
+        goalSelector.addGoal(2, new TianyiCombatGoal(this));
         goalSelector.addGoal(3, new FollowOwnerGoal(this, 1.1D, 5.0F, 2.0F));
         goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.8D));
         goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
@@ -265,6 +269,11 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     @Override
     public void performRangedAttack(LivingEntity target, float distanceFactor) {
         if (level().isClientSide || getAffinity() < 200) return;
+        ItemStack weapon = getMainHandItem();
+        if (weapon.getItem() instanceof ProjectileWeaponItem) {
+            fireArrow(target, weapon);
+            return;
+        }
         NoteProjectile note = new NoteProjectile(level(), this);
         double dx = target.getX() - getX();
         double dy = target.getY(0.5D) - note.getY();
@@ -272,6 +281,71 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         note.shoot(dx, dy, dz, 1.35F, 1.5F);
         level().addFreshEntity(note);
         level().playSound(null, blockPosition(), SoundEvents.NOTE_BLOCK_HARP.value(), SoundSource.NEUTRAL, 0.8F, 1.4F);
+    }
+
+    private void fireArrow(LivingEntity target, ItemStack weapon) {
+        Arrow arrow = new Arrow(level(), this, new ItemStack(Items.ARROW), weapon);
+        arrow.setBaseDamage(2.5D);
+        double dx = target.getX() - getX();
+        double dy = target.getY(0.5D) - getY(0.5D);
+        double dz = target.getZ() - getZ();
+        arrow.shoot(dx, dy, dz, 1.6F, 1.0F);
+        level().addFreshEntity(arrow);
+        level().playSound(null, blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.NEUTRAL, 1.0F, 1.0F);
+    }
+
+    /** Equips the weapon stored in inventory slot 0 into her main hand, if any. */
+    public void equipItemFromSlotZero() {
+        if (level().isClientSide) return;
+        ItemStack slotZero = companionInventory.getItem(0);
+        ItemStack held = getMainHandItem();
+        if (isWieldableWeapon(slotZero)) {
+            if (!ItemStack.isSameItemSameComponents(held, slotZero)) {
+                setItemSlot(EquipmentSlot.MAINHAND, slotZero.copy());
+            }
+        } else if (!held.isEmpty()) {
+            setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        }
+    }
+
+    /** True if the stack is a bow or crossbow. */
+    public static boolean isRangedWeapon(ItemStack stack) {
+        return stack.getItem() instanceof ProjectileWeaponItem;
+    }
+
+    /** True if the stack is a weapon usable in melee (has base attack damage). */
+    public static boolean isMeleeWeapon(ItemStack stack) {
+        if (stack.isEmpty() || isRangedWeapon(stack)) return false;
+        for (ItemAttributeModifiers.Entry entry : stack.getAttributeModifiers().modifiers()) {
+            if (entry.attribute().is(Attributes.ATTACK_DAMAGE)
+                    && entry.modifier().operation() == AttributeModifier.Operation.ADD_VALUE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True if the stack can be used as a weapon at all (melee or ranged). */
+    public static boolean isWieldableWeapon(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && (isRangedWeapon(stack) || isMeleeWeapon(stack));
+    }
+
+    /** Swings the weapon held in the main hand at the target. */
+    public void performMeleeAttack(LivingEntity target) {
+        if (level().isClientSide) return;
+        ItemStack weapon = getMainHandItem();
+        float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE);
+        for (ItemAttributeModifiers.Entry entry : weapon.getAttributeModifiers().modifiers()) {
+            if (entry.attribute().is(Attributes.ATTACK_DAMAGE)
+                    && entry.modifier().operation() == AttributeModifier.Operation.ADD_VALUE) {
+                damage += (float) entry.modifier().amount();
+            }
+        }
+        boolean hurt = target.hurt(level().damageSources().mobAttack(this), damage);
+        if (hurt) {
+            target.knockback(0.4F, getX() - target.getX(), getZ() - target.getZ());
+        }
+        swing(InteractionHand.MAIN_HAND);
     }
 
     @Override
