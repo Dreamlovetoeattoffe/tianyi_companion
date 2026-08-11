@@ -43,6 +43,13 @@ public final class NoteProjectile extends Projectile {
     }
 
     @Override
+    public boolean canHitEntity(Entity target) {
+        if (!super.canHitEntity(target)) return false;
+        // Notes never hurt Tianyi that were summoned to help with a hunt.
+        return !(target instanceof TianyiEntity tianyi && tianyi.isHuntHelper());
+    }
+
+    @Override
     protected void onHitEntity(EntityHitResult result) {
         Entity owner = getOwner();
         DamageSource source = owner instanceof LivingEntity living

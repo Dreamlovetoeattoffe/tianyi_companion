@@ -179,6 +179,11 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         helperHuntOwner = uuid;
     }
 
+    /** True if this Tianyi was summoned from thin air to help hunt a player. */
+    public boolean isHuntHelper() {
+        return helperHuntOwner != null;
+    }
+
     public TianyiEntity(EntityType<? extends TianyiEntity> type, Level level) {
         super(type, level);
     }
