@@ -26,7 +26,7 @@
   "message.tianyi_companion.hunt_banished": "Tianyi hunted you down 7 times and left you... Summoning is refused until you offer 64 xiaolongbao.",
   "message.tianyi_companion.summon_refused": "Tianyi refuses to answer your summon... bring %s xiaolongbao to have her return.",
   "message.tianyi_companion.summon_debt_paid": "Tianyi accepted your %s xiaolongbao and returns to your side.",
-  "message.tianyi_companion.hunt_killed_ban": "Tianyi was defeated mid-hunt and left you... You must offer 448 xiaolongbao (7 stacks) to summon her again.",
+  "message.tianyi_companion.hunt_killed_ban": "Tianyi got angry and returned to Vanaheim.",
   "message.tianyi_companion.hunt_no_inventory": "While hunting you, Tianyi won't let you touch her pack.",
   "message.tianyi_companion.negative_feed": "Tianyi ate that with disgust. Affinity decreased by %s.",
   "message.tianyi_companion.potion_harm": "The potion's negative effects upset Tianyi. Affinity decreased by %s.",

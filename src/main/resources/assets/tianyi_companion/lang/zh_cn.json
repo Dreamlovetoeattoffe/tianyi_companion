@@ -26,7 +26,7 @@
   "message.tianyi_companion.hunt_banished": "你被天依击败了 7 次，她离你而去……召唤将被拒绝，除非你献上 64 个小笼包",
   "message.tianyi_companion.summon_refused": "天依拒绝回应你的召唤……你需要带上 %s 个小笼包才能让她回来",
   "message.tianyi_companion.summon_debt_paid": "天依收下了 %s 个小笼包，愿意回到你身边",
-  "message.tianyi_companion.hunt_killed_ban": "天依在追杀中被击败，她离你而去……必须献上 448 个小笼包（7 组）才能重新召唤她",
+  "message.tianyi_companion.hunt_killed_ban": "天依生气了，回到了瓦纳海姆",
   "message.tianyi_companion.hunt_no_inventory": "被追杀的期间，天依不会让你触碰她的背包",
   "message.tianyi_companion.negative_feed": "天依厌恶地吃下了这个，好感度降低了 %s",
   "message.tianyi_companion.potion_harm": "药水的负面效果刺激了天依，好感度降低了 %s",
