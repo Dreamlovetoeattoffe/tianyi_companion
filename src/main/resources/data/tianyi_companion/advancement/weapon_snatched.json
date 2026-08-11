@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:hurt_tianyi",
+  "display": {
+    "icon": { "id": "minecraft:diamond_sword" },
+    "title": { "translate": "advancements.tianyi_companion.weapon_snatched.title" },
+    "description": { "translate": "advancements.tianyi_companion.weapon_snatched.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

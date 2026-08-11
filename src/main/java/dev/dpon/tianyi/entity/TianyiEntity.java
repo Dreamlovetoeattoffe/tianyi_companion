@@ -4,6 +4,8 @@ import dev.dpon.tianyi.TianyiCompanionMod;
 import dev.dpon.tianyi.build.TianyiBuildEngine;
 import dev.dpon.tianyi.menu.TianyiMenu;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.particles.ParticleTypes;
@@ -55,9 +57,13 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
@@ -87,6 +93,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int HUNT_KILL_BAN_COST = 7 * 64;
     /** Max health Tianyi fights with while hunting a player. */
     public static final int HUNT_MAX_HEALTH = 712;
+    /** Fixed note damage she fires while hostile (hate mode / no weapon hunt / ranged switched). */
+    public static final int HUNT_NOTE_DAMAGE = 15;
     /** Number of skin variants: 0 = default, 1..5 = extra. */
     public static final int MAX_SKIN_INDEX = 5;
     /** Inventory slot she wields as a weapon: the first slot of the last 3x9 row. */
@@ -102,6 +110,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private static final int RECENT_FOOD_LIMIT = 100;
     /** Nights the owner slept near this Tianyi; 5 unlocks the house-building skill. */
     public static final int REQUIRED_SHARED_NIGHTS = 5;
+    /** At this affinity Tianyi climbs into a nearby bed and spends the night with her owner. */
+    public static final int SLEEP_TOGETHER_THRESHOLD = 7120;
     private static final String[] GIFT_BASIC = {
             "minecraft:coal", "minecraft:charcoal", "minecraft:oak_log", "minecraft:spruce_log",
             "minecraft:birch_log", "minecraft:oak_planks", "minecraft:stone", "minecraft:cobblestone",
@@ -139,6 +149,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private int sharedNights;
     private boolean hateGrabbedWeapon;
     private boolean huntHealed;
+    private boolean huntUsesNotes;
+    /** Hunted player this Tianyi was summoned to help hunt; null for normal companions. */
+    private UUID helperHuntOwner;
     private TianyiBuildEngine.BuildJob activeBuild;
     private boolean talkingToOwner;
     private int talkingTicks;
@@ -159,6 +172,11 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public void setTalkingToOwner(boolean value) {
         talkingToOwner = value;
         talkingTicks = 0;
+    }
+
+    /** Marks this Tianyi as a hunt helper summoned for the given hunted player. */
+    public void setHuntHelperOwner(UUID uuid) {
+        helperHuntOwner = uuid;
     }
 
     public TianyiEntity(EntityType<? extends TianyiEntity> type, Level level) {
@@ -234,6 +252,34 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         }
     }
 
+    /** Lies down in a nearby bed for the night beside her sleeping owner. */
+    public void sleepInBedTogether(BlockPos bedPos) {
+        if (level().isClientSide || isSleeping() || !isAlive()) return;
+        BlockPos slot = bedPos;
+        BlockState state = level().getBlockState(bedPos);
+        if (state.is(BlockTags.BEDS) && state.hasProperty(BedBlock.FACING) && state.hasProperty(BedBlock.PART)) {
+            Direction facing = state.getValue(BedBlock.FACING);
+            // Her owner occupies one half of the bed; Tianyi takes the other half.
+            slot = state.getValue(BedBlock.PART) == BedPart.FOOT
+                    ? bedPos.relative(facing)
+                    : bedPos.relative(facing.getOpposite());
+            if (!level().getBlockState(slot).is(BlockTags.BEDS)) slot = bedPos;
+        }
+        getNavigation().stop();
+        startSleeping(slot);
+        setNoAi(true);
+        if (getOwner() instanceof ServerPlayer owner) {
+            TianyiCompanionMod.award(owner, "sleep_together");
+            owner.displayClientMessage(Component.translatable("message.tianyi_companion.sleep_together"), false);
+        }
+    }
+
+    /** Gets Tianyi back out of bed after her owner wakes. */
+    public void wakeFromBedTogether() {
+        setNoAi(false);
+        stopSleeping();
+    }
+
     /** Returns the currently equipped skin variant index, 0 = default. */
     public int getSkinIndex() {
         return entityData.get(SKIN);
@@ -268,6 +314,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
 
     /** Returns the current note projectile damage, including all affinity growth. */
     public int getNoteDamage() {
+        if (getAffinity() <= HATE_THRESHOLD) return HUNT_NOTE_DAMAGE;
         int affinity = getAffinity();
         if (affinity <= 1_000) return Math.min(5, 1 + affinity / 200);
         return 5 + (affinity - 1_000) / 500;
@@ -301,9 +348,10 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
 
     @Override
     public void performRangedAttack(LivingEntity target, float distanceFactor) {
-        if (level().isClientSide || getAffinity() < 200) return;
+        if (level().isClientSide || (getAffinity() < 200 && !TianyiHuntManager.isHunted(target.getUUID()))) return;
         ItemStack weapon = getMainHandItem();
-        if (isRangedWeapon(weapon)) {
+        // Hostile Tianyi never shoots the stolen bow; she sings notes instead.
+        if (isRangedWeapon(weapon) && getAffinity() > HATE_THRESHOLD) {
             fireRangedProjectile(target, weapon);
             return;
         }
@@ -405,6 +453,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         ServerLevel serverLevel = (ServerLevel) level();
         DamageSource source = serverLevel.damageSources().mobAttack(this);
         float totalDamage = EnchantmentHelper.modifyDamage(serverLevel, weapon, target, source, (float) damage);
+        // The weapon was stolen from her owner: she swings it for triple its max damage.
+        if (hateGrabbedWeapon) totalDamage *= 3.0F;
         boolean hurt = target.hurt(source, totalDamage);
         if (hurt) {
             target.knockback(0.4F, getX() - target.getX(), getZ() - target.getZ());
@@ -462,21 +512,30 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
      * wherever they are.
      */
     private void updateHateAndHunt() {
+        // Hunt helpers vanish once the hunt they were summoned for ends.
+        if (helperHuntOwner != null && !TianyiHuntManager.isHunted(helperHuntOwner)) {
+            remove(net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+            return;
+        }
         if (getAffinity() <= GLOBAL_HUNT_THRESHOLD) {
             if (!huntHealed) {
                 huntHealed = true;
                 setHealth(getMaxHealth());
                 if (getOwner() instanceof ServerPlayer owner) {
                     TianyiCompanionMod.award(owner, "hunt_started");
+                    // With no weapon to grab she hunts with note projectiles.
+                    huntUsesNotes = !hateGrabbedWeapon;
                 }
             }
         } else {
             huntHealed = false;
+            huntUsesNotes = false;
         }
         if (getAffinity() <= HATE_THRESHOLD && getOwner() instanceof ServerPlayer owner) {
             if (!hateGrabbedWeapon) {
                 hateGrabbedWeapon = grabStrongestWeaponFrom(owner);
                 if (hateGrabbedWeapon) {
+                    TianyiCompanionMod.award(owner, "weapon_snatched");
                     owner.displayClientMessage(Component.translatable(
                             "message.tianyi_companion.hate_grabbed_weapon"), false);
                 }
@@ -493,6 +552,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                     forgiveHuntedOwner(owner);
                 } else {
                     TianyiHuntManager.startHunt(owner.getUUID(), getHateWeapon());
+                    if (tickCount % 40 == 0) {
+                        TianyiHuntManager.ensureHuntGroup(owner, (ServerLevel) level());
+                    }
                 }
             }
         } else if (getOwnerUUID() != null && TianyiHuntManager.isHunted(getOwnerUUID())
@@ -565,6 +627,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         if (isWieldableWeapon(held)) return held;
         ItemStack bagged = companionInventory.getItem(WEAPON_SLOT);
         if (isWieldableWeapon(bagged)) return bagged;
+        if (huntUsesNotes) return ItemStack.EMPTY;
         return new ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
     }
 
@@ -718,6 +781,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 if (negativeDamage > 0.0D) {
                     int loss = (int) (negativeDamage * 10.0D);
                     changeAffinity(-loss);
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        TianyiCompanionMod.award(serverPlayer, "negative_feed");
+                    }
                     player.displayClientMessage(Component.translatable(
                             "message.tianyi_companion.negative_feed", loss), true);
                     if (!player.getAbilities().instabuild) held.shrink(1);
@@ -766,6 +832,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                             "message.tianyi_companion.potion_heal", (int) healedHearts), true);
                 }
                 if (!player.getAbilities().instabuild) held.shrink(1);
+                if (player instanceof ServerPlayer serverPlayer) {
+                    TianyiCompanionMod.award(serverPlayer, "potion_feed");
+                }
             }
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
@@ -913,6 +982,13 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 changeAffinity(-5);
                 TianyiCompanionMod.award(attacker, "hurt_tianyi");
                 attacker.displayClientMessage(Component.translatable("message.tianyi_companion.affinity_lost"), true);
+                // Hostile Tianyi has a 30% chance to reflect the hit back at her attacker.
+                if (getAffinity() <= HATE_THRESHOLD && attacker.isAlive()
+                        && random.nextDouble() < 0.30D) {
+                    attacker.hurt(level().damageSources().mobAttack(this), amount);
+                    attacker.displayClientMessage(Component.translatable(
+                            "message.tianyi_companion.hate_reflect"), true);
+                }
             }
         }
         return hurt;
@@ -969,6 +1045,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         tag.put("CompanionInventory", companionInventory.saveInventory(registryAccess()));
         tag.putInt("CareCooldown", careCooldown);
         tag.putBoolean("HateGrabbedWeapon", hateGrabbedWeapon);
+        if (helperHuntOwner != null) tag.putUUID("HuntHelperOwner", helperHuntOwner);
         ListTag recentFoodTag = new ListTag();
         for (String foodId : recentFoods) {
             recentFoodTag.add(net.minecraft.nbt.StringTag.valueOf(foodId));
@@ -990,6 +1067,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         }
         careCooldown = tag.getInt("CareCooldown");
         hateGrabbedWeapon = tag.getBoolean("HateGrabbedWeapon");
+        if (tag.contains("HuntHelperOwner")) helperHuntOwner = tag.getUUID("HuntHelperOwner");
         recentFoods.clear();
         if (tag.contains("RecentFoods", 9)) {
             ListTag recentFoodTag = tag.getList("RecentFoods", 8);

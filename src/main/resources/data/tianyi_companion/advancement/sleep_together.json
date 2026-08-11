@@ -1,0 +1,14 @@
+{
+  "parent": "tianyi_companion:gift_precious",
+  "display": {
+    "icon": { "id": "minecraft:red_bed" },
+    "title": { "translate": "advancements.tianyi_companion.sleep_together.title" },
+    "description": { "translate": "advancements.tianyi_companion.sleep_together.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } },
+  "rewards": { "experience": 64 }
+}

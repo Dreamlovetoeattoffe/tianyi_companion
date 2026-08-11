@@ -42,7 +42,10 @@ public final class NetworkHandler {
                 (payload, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer player) {
                         TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
-                        if (tianyi != null) tianyi.setTalkingToOwner(payload.start());
+                        if (tianyi != null) {
+                            tianyi.setTalkingToOwner(payload.start());
+                            if (payload.start()) TianyiCompanionMod.award(player, "first_talk");
+                        }
                     }
                 }));
     }

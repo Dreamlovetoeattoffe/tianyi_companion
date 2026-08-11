@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.portal.DimensionTransition;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
@@ -87,5 +88,24 @@ public final class CommonEvents {
         if (tianyi.distanceToSqr(player) > 64.0D) return;
         tianyi.recordSharedNight(player);
         tianyi.giveDailyGift(player);
+    }
+
+    /** At 7120 affinity Tianyi climbs into a nearby bed and spends the night with her owner. */
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || player.level().isClientSide) return;
+        if (!player.isSleeping()
+                && !player.getPersistentData().hasUUID(TianyiCompanionMod.OWNER_ENTITY_KEY)) return;
+        TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
+        if (tianyi == null || !tianyi.isAlive() || tianyi.level() != player.level()) return;
+        if (player.isSleeping()) {
+            // Join her owner in bed: she must be within 5 blocks and close enough to climb in.
+            if (!tianyi.isSleeping()
+                    && tianyi.getAffinity() >= TianyiEntity.SLEEP_TOGETHER_THRESHOLD
+                    && tianyi.distanceToSqr(player) <= 25.0D) {
+                player.getSleepingPos().ifPresent(tianyi::sleepInBedTogether);
+            }
+        } else if (tianyi.isSleeping() || tianyi.isNoAi()) {
+            tianyi.wakeFromBedTogether();
+        }
     }
 }
