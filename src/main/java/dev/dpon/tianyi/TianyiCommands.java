@@ -22,7 +22,7 @@ public final class TianyiCommands {
                                 .executes(ctx -> setSkin(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "id")))))
                 .then(Commands.literal("affinity")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.argument("value", IntegerArgumentType.integer(0, TianyiEntity.MAX_AFFINITY))
+                        .then(Commands.argument("value", IntegerArgumentType.integer(TianyiEntity.MIN_AFFINITY, TianyiEntity.MAX_AFFINITY))
                                 .executes(ctx -> setAffinity(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "value"))))));
     }
 

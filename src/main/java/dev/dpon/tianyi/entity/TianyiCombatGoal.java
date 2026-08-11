@@ -2,9 +2,11 @@ package dev.dpon.tianyi.entity;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.player.Player;
 
 /** Drives Tianyi's combat: wields the weapon from inventory slot 0 (melee charge/attack
- *  or ranged bow fire), otherwise falls back to her signature note projectile. */
+ *  or ranged bow fire), otherwise falls back to her signature note projectile.
+ *  Also enables her to fight her owner in hate mode and hunt globally marked players. */
 public class TianyiCombatGoal extends Goal {
     private static final double RANGED_RANGE_SQ = 256.0D;
     private final TianyiEntity mob;
@@ -16,7 +18,15 @@ public class TianyiCombatGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        return mob.getTarget() != null && !mob.isOrderedToSit() && mob.getAffinity() >= 200;
+        LivingEntity target = mob.getTarget();
+        if (target == null || mob.isOrderedToSit()) return false;
+        if (mob.getTarget() instanceof Player player && TianyiHuntManager.isHunted(player.getUUID())) {
+            return true;
+        }
+        if (mob.getAffinity() <= TianyiEntity.HATE_THRESHOLD) {
+            return target == mob.getOwner() || TianyiHuntManager.isHunted(target.getUUID());
+        }
+        return mob.getAffinity() >= 200;
     }
 
     @Override

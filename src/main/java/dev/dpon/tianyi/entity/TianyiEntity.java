@@ -4,6 +4,7 @@ import dev.dpon.tianyi.TianyiCompanionMod;
 import dev.dpon.tianyi.build.TianyiBuildEngine;
 import dev.dpon.tianyi.menu.TianyiMenu;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -44,10 +45,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.MaceItem;
+import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.TieredItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.projectile.ThrownTrident;
@@ -55,17 +58,27 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 
 public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int MAX_AFFINITY = 712_712;
+    /** Most negative affinity allowed. */
+    public static final int MIN_AFFINITY = -1000;
+    /** At this affinity Tianyi grabs the owner's strongest weapon and attacks them. */
+    public static final int HATE_THRESHOLD = -100;
+    /** At this affinity every Tianyi on the server hunts the player. */
+    public static final int GLOBAL_HUNT_THRESHOLD = -200;
     /** Number of skin variants: 0 = default, 1..5 = extra. */
     public static final int MAX_SKIN_INDEX = 5;
     /** Inventory slot she wields as a weapon: the first slot of the last 3x9 row. */
@@ -116,6 +129,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private final Deque<String> recentFoods = new ArrayDeque<>();
     private int careCooldown;
     private int sharedNights;
+    private boolean hateGrabbedWeapon;
     private TianyiBuildEngine.BuildJob activeBuild;
     private boolean talkingToOwner;
     private int talkingTicks;
@@ -177,7 +191,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     }
 
     public void setAffinity(int value) {
-        entityData.set(AFFINITY, Math.max(0, Math.min(MAX_AFFINITY, value)));
+        entityData.set(AFFINITY, Math.max(MIN_AFFINITY, Math.min(MAX_AFFINITY, value)));
         updateMaxHealthFromAffinity();
     }
 
@@ -428,6 +442,175 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 && owner.isAlive() && owner.getHealth() < owner.getMaxHealth() * 0.60F && distanceToSqr(owner) < 144.0D) {
             careForOwner(owner);
         }
+        if (!level().isClientSide) updateHateAndHunt();
+    }
+
+    /**
+     * Handles Tianyi's hatred: at -100 affinity she grabs the strongest weapon
+     * from her owner's inventory and attacks her owner; at -200 affinity every
+     * Tianyi on the server materializes that same weapon and hunts the player
+     * wherever they are.
+     */
+    private void updateHateAndHunt() {
+        if (getAffinity() <= HATE_THRESHOLD && getOwner() instanceof ServerPlayer owner) {
+            if (!hateGrabbedWeapon) {
+                hateGrabbedWeapon = grabStrongestWeaponFrom(owner);
+                if (hateGrabbedWeapon) {
+                    owner.displayClientMessage(Component.translatable(
+                            "message.tianyi_companion.hate_grabbed_weapon"), false);
+                }
+            }
+            if (owner.isAlive() && getTarget() != owner) {
+                setTarget(owner);
+            }
+        } else if (getTarget() == getOwner() && getAffinity() > HATE_THRESHOLD) {
+            setTarget(null);
+        }
+        if (getAffinity() <= GLOBAL_HUNT_THRESHOLD) {
+            if (getOwner() instanceof ServerPlayer owner) {
+                TianyiHuntManager.startHunt(owner.getUUID(), getHateWeapon());
+            }
+        } else if (getOwnerUUID() != null && TianyiHuntManager.isHunted(getOwnerUUID())
+                && getAffinity() > GLOBAL_HUNT_THRESHOLD) {
+            TianyiHuntManager.endHunt(getOwnerUUID());
+        }
+        if (tickCount % 20 == 0) {
+            globalHuntStep();
+        }
+    }
+
+    /** Every registered hunt is where all Tianyi converge: equip the recorded
+     *  weapon and seek out the hunted player, teleporting across the world. */
+    private void globalHuntStep() {
+        if (TianyiHuntManager.allHunts().isEmpty()) return;
+        ServerLevel server = (ServerLevel) level();
+        ServerPlayer nearest = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Map.Entry<UUID, ItemStack> hunt : TianyiHuntManager.allHunts().entrySet()) {
+            ServerPlayer target = server.getServer().getPlayerList().getPlayer(hunt.getKey());
+            if (target == null || !target.isAlive()) continue;
+            double distance = distanceTo(target);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                nearest = target;
+            }
+        }
+        if (nearest == null) return;
+
+        ItemStack weapon = TianyiHuntManager.getWeaponFor(nearest.getUUID());
+        if (!weapon.isEmpty() && !ItemStack.isSameItemSameComponents(getMainHandItem(), weapon)) {
+            setItemSlot(EquipmentSlot.MAINHAND, weapon.copy());
+        }
+        if (getTarget() != nearest) setTarget(nearest);
+        setOrderedToSit(false);
+        boolean farAway = bestDistance > 48.0D || level() != nearest.level();
+        if (farAway && tickCount % 60 == 0) {
+            teleportNear(nearest);
+        }
+    }
+
+    private ItemStack getHateWeapon() {
+        ItemStack held = getMainHandItem();
+        if (isWieldableWeapon(held)) return held;
+        ItemStack bagged = companionInventory.getItem(WEAPON_SLOT);
+        if (isWieldableWeapon(bagged)) return bagged;
+        return new ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
+    }
+
+    private void teleportNear(ServerPlayer target) {
+        ServerLevel targetLevel = target.serverLevel();
+        if (level() != targetLevel) {
+            DimensionTransition transition = new DimensionTransition(
+                    targetLevel, target.position().add(0.0D, 2.0D, 0.0D), Vec3.ZERO,
+                    target.getYRot(), 0.0F, DimensionTransition.DO_NOTHING);
+            changeDimension(transition);
+            return;
+        }
+        double x = target.getX() + (random.nextDouble() - 0.5D) * 6.0D;
+        double z = target.getZ() + (random.nextDouble() - 0.5D) * 6.0D;
+        double y = target.getY();
+        randomTeleport(x, y, z, true);
+        ((ServerLevel) level()).sendParticles(ParticleTypes.PORTAL,
+                getX(), getY() + 1.0D, getZ(), 24, 0.6D, 0.8D, 0.6D, 0.1D);
+    }
+
+    /**
+     * Removes the strongest weapon (largest melee or ranged damage) from the
+     * owner's whole inventory and equips it. Returns true if a weapon was taken.
+     */
+    private boolean grabStrongestWeaponFrom(ServerPlayer owner) {
+        ItemStack best = ItemStack.EMPTY;
+        int bestSlot = -1;
+        double bestPower = -1.0D;
+        for (int slot = 0; slot < owner.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = owner.getInventory().getItem(slot);
+            if (!isWieldableWeapon(stack)) continue;
+            double power = weaponPower(stack);
+            if (power > bestPower) {
+                bestPower = power;
+                best = stack.copy();
+                bestSlot = slot;
+            }
+        }
+        if (bestSlot < 0) return false;
+        owner.getInventory().setItem(bestSlot, ItemStack.EMPTY);
+        companionInventory.setItem(WEAPON_SLOT, best);
+        updateEquippedWeapon();
+        return true;
+    }
+
+    private double weaponPower(ItemStack stack) {
+        if (isMeleeWeapon(stack)) {
+            double base = 1.0D;
+            for (ItemAttributeModifiers.Entry entry : stack.getAttributeModifiers().modifiers()) {
+                if (!entry.attribute().is(Attributes.ATTACK_DAMAGE) || !entry.slot().test(EquipmentSlot.MAINHAND)) continue;
+                base += entry.modifier().amount();
+            }
+            return base;
+        }
+        if (isRangedWeapon(stack)) return 6.0D;
+        return 0.0D;
+    }
+
+    /** Collects every effect on a food item (ignoring probability). */
+    private static List<MobEffectInstance> itemEffectsOf(FoodProperties foodProperties) {
+        List<MobEffectInstance> effects = new ArrayList<>();
+        for (FoodProperties.PossibleEffect possible : foodProperties.effects()) {
+            effects.add(possible.effect());
+        }
+        return effects;
+    }
+
+    /** Hearts restored by a positive effect (instant health / regeneration). */
+    private static double healingHeartsOf(MobEffectInstance instance) {
+        int amplifier = instance.getAmplifier();
+        if (instance.is(MobEffects.HEAL)) {
+            return (amplifier + 1) * 3.0D;
+        }
+        if (instance.is(MobEffects.REGENERATION)) {
+            return instance.getDuration() * (amplifier + 1) / 50.0D / 2.0D;
+        }
+        return 0.0D;
+    }
+
+    /** Damage (in hearts taken by enemies) caused by negative effects: poison,
+     *  hunger, wither, instant damage. Used to punish feeding bad items. */
+    private static double totalNegativeDamage(List<MobEffectInstance> effects) {
+        double damage = 0.0D;
+        for (MobEffectInstance instance : effects) {
+            int amplifier = instance.getAmplifier();
+            if (instance.is(MobEffects.POISON)) {
+                // 1 HP every 25 / (amplifier+1) ticks for the whole duration.
+                damage += instance.getDuration() / (25.0D / (amplifier + 1)) / 2.0D;
+            } else if (instance.is(MobEffects.WITHER)) {
+                damage += instance.getDuration() / (40.0D / (amplifier + 1)) / 2.0D;
+            } else if (instance.is(MobEffects.HUNGER)) {
+                damage += (amplifier + 1) * 2.0D;
+            } else if (instance.is(MobEffects.HARM)) {
+                damage += (amplifier + 1) * 3.0D;
+            }
+        }
+        return damage;
     }
 
     private void careForOwner(ServerPlayer owner) {
@@ -480,24 +663,58 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         FoodProperties foodProperties = held.getFoodProperties(this);
         if (foodProperties != null) {
             if (!level().isClientSide) {
-                String foodId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
-                int recentCount = countRecentFood(foodId);
-                int affection = calculateFoodAffection(held, foodProperties, recentCount);
-                recordRecentFood(foodId);
-                changeAffinity(affection);
-                heal(Math.min(8.0F, affection));
-                applyFoodEffect(held);
-                if (!player.getAbilities().instabuild) held.shrink(1);
-                if (player instanceof ServerPlayer serverPlayer) {
-                    TianyiCompanionMod.award(serverPlayer, "feed_tianyi");
-                    if (getAffinity() >= 100) TianyiCompanionMod.award(serverPlayer, "devoted_tianyi");
-                    if (held.is(TianyiCompanionMod.XIAOLONGBAO)) {
-                        TianyiCompanionMod.award(serverPlayer, "feed_xiaolongbao");
+                double negativeDamage = totalNegativeDamage(itemEffectsOf(foodProperties));
+                if (negativeDamage > 0.0D) {
+                    int loss = (int) (negativeDamage * 10.0D);
+                    changeAffinity(-loss);
+                    player.displayClientMessage(Component.translatable(
+                            "message.tianyi_companion.negative_feed", loss), true);
+                    if (!player.getAbilities().instabuild) held.shrink(1);
+                } else {
+                    String foodId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
+                    int recentCount = countRecentFood(foodId);
+                    int affection = calculateFoodAffection(held, foodProperties, recentCount);
+                    recordRecentFood(foodId);
+                    changeAffinity(affection);
+                    heal(Math.min(8.0F, affection));
+                    applyFoodEffect(held);
+                    if (!player.getAbilities().instabuild) held.shrink(1);
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        TianyiCompanionMod.award(serverPlayer, "feed_tianyi");
+                        if (getAffinity() >= 100) TianyiCompanionMod.award(serverPlayer, "devoted_tianyi");
+                        if (held.is(TianyiCompanionMod.XIAOLONGBAO)) {
+                            TianyiCompanionMod.award(serverPlayer, "feed_xiaolongbao");
+                        }
                     }
+                    ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 1.3D, getZ(), 6, 0.4D, 0.5D, 0.4D, 0.0D);
+                    player.displayClientMessage(Component.translatable("message.tianyi_companion.affinity",
+                            getAffinity(), Component.translatable(getAffinityTierKey())), true);
                 }
-                ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 1.3D, getZ(), 6, 0.4D, 0.5D, 0.4D, 0.0D);
-                player.displayClientMessage(Component.translatable("message.tianyi_companion.affinity",
-                        getAffinity(), Component.translatable(getAffinityTierKey())), true);
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
+
+        if (held.getItem() instanceof PotionItem) {
+            if (!level().isClientSide) {
+                PotionContents contents = held.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+                List<MobEffectInstance> effects = new ArrayList<>();
+                contents.getAllEffects().forEach(effects::add);
+                double healedHearts = 0.0D;
+                double negativeDamage = totalNegativeDamage(effects);
+                for (MobEffectInstance instance : effects) {
+                    healedHearts += healingHeartsOf(instance);
+                }
+                int delta = (int) (healedHearts * 10.0D) - (int) (negativeDamage * 10.0D);
+                changeAffinity(delta);
+                if (healedHearts > 0.0D) heal((float) (healedHearts * 2.0D));
+                if (negativeDamage > 0.0D) {
+                    player.displayClientMessage(Component.translatable(
+                            "message.tianyi_companion.potion_harm", (int) negativeDamage), true);
+                } else if (healedHearts > 0.0D) {
+                    player.displayClientMessage(Component.translatable(
+                            "message.tianyi_companion.potion_heal", (int) healedHearts), true);
+                }
+                if (!player.getAbilities().instabuild) held.shrink(1);
             }
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
@@ -550,6 +767,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     }
 
     private String getAffinityTierKey() {
+        if (getAffinity() <= GLOBAL_HUNT_THRESHOLD) return "tier.tianyi_companion.hunted";
+        if (getAffinity() <= HATE_THRESHOLD) return "tier.tianyi_companion.hateful";
+        if (getAffinity() < 0) return "tier.tianyi_companion.wary";
         if (getAffinity() >= 1500) return "tier.tianyi_companion.devoted";
         if (getAffinity() >= 1000) return "tier.tianyi_companion.confidant";
         if (getAffinity() >= 600) return "tier.tianyi_companion.close";
@@ -659,6 +879,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     @Override
     public void die(DamageSource source) {
         boolean wasDead = this.dead;
+        if (getOwnerUUID() != null) {
+            TianyiHuntManager.endHunt(getOwnerUUID());
+        }
         super.die(source);
         if (!level().isClientSide && !wasDead && this.dead && !isRemoved()) {
             TianyiGraveEntity grave = new TianyiGraveEntity(level(), getOwnerUUID(), getAffinity());
@@ -680,6 +903,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         tag.putBoolean("BuildSkill", hasBuildSkill());
         tag.put("CompanionInventory", companionInventory.saveInventory(registryAccess()));
         tag.putInt("CareCooldown", careCooldown);
+        tag.putBoolean("HateGrabbedWeapon", hateGrabbedWeapon);
         ListTag recentFoodTag = new ListTag();
         for (String foodId : recentFoods) {
             recentFoodTag.add(net.minecraft.nbt.StringTag.valueOf(foodId));
@@ -700,6 +924,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             companionInventory.fromTag(tag.getList("FoodBag", 10), registryAccess());
         }
         careCooldown = tag.getInt("CareCooldown");
+        hateGrabbedWeapon = tag.getBoolean("HateGrabbedWeapon");
         recentFoods.clear();
         if (tag.contains("RecentFoods", 9)) {
             ListTag recentFoodTag = tag.getList("RecentFoods", 8);
