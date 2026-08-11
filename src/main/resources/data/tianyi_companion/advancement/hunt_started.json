@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:hurt_tianyi",
+  "display": {
+    "icon": { "id": "minecraft:iron_sword" },
+    "title": { "translate": "advancements.tianyi_companion.hunt_started.title" },
+    "description": { "translate": "advancements.tianyi_companion.hunt_started.description" },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

@@ -1,0 +1,14 @@
+{
+  "parent": "tianyi_companion:hunt_started",
+  "display": {
+    "icon": { "id": "minecraft:skeleton_skull" },
+    "title": { "translate": "advancements.tianyi_companion.hunt_banished.title" },
+    "description": { "translate": "advancements.tianyi_companion.hunt_banished.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } },
+  "rewards": { "experience": 100 }
+}

@@ -83,6 +83,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int HUNT_DEATHS_TO_BAN = 7;
     /** Xiaolongbao Tianyi confiscates to forgive a hunted player, or to accept a banned summon. */
     public static final int XIAOLONGBAO_FORGIVE_COUNT = 64;
+    /** Xiaolongbao required to resummon Tianyi after she was killed while hunting (7 stacks). */
+    public static final int HUNT_KILL_BAN_COST = 7 * 64;
     /** Max health Tianyi fights with while hunting a player. */
     public static final int HUNT_MAX_HEALTH = 712;
     /** Number of skin variants: 0 = default, 1..5 = extra. */
@@ -464,6 +466,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             if (!huntHealed) {
                 huntHealed = true;
                 setHealth(getMaxHealth());
+                if (getOwner() instanceof ServerPlayer owner) {
+                    TianyiCompanionMod.award(owner, "hunt_started");
+                }
             }
         } else {
             huntHealed = false;
@@ -516,9 +521,10 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         setAffinity(0);
         TianyiHuntManager.endHunt(owner.getUUID());
         owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY);
-        owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY);
+        owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
         hateGrabbedWeapon = false;
         if (getTarget() == owner) setTarget(null);
+        TianyiCompanionMod.award(owner, "hunt_forgiven");
         owner.displayClientMessage(Component.translatable("message.tianyi_companion.hunt_forgiven"), true);
         ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 1.3D, getZ(), 24, 0.5D, 0.7D, 0.5D, 0.1D);
         level().playSound(null, blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 1.0F, 1.3F);
@@ -936,12 +942,18 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         if (!level().isClientSide && !wasDead && this.dead && !isRemoved()) {
             if (getOwner() instanceof ServerPlayer owner) {
                 owner.getPersistentData().remove(TianyiCompanionMod.OWNER_ENTITY_KEY);
-                // Killed mid-hunt she leaves no grave behind.
+                // Killed mid-hunt she leaves no grave behind, and can only be
+                // summoned again after the owner pays 7 stacks of xiaolongbao.
                 if (getAffinity() > GLOBAL_HUNT_THRESHOLD) {
                     TianyiGraveEntity grave = new TianyiGraveEntity(level(), getOwnerUUID(), getAffinity());
                     grave.moveTo(getX(), getY(), getZ(), getYRot(), 0.0F);
                     level().addFreshEntity(grave);
                     owner.displayClientMessage(Component.translatable("message.tianyi_companion.grave_placed"), false);
+                } else {
+                    owner.getPersistentData().putInt(
+                            TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY, HUNT_KILL_BAN_COST);
+                    TianyiCompanionMod.award(owner, "hunt_slayer");
+                    owner.displayClientMessage(Component.translatable("message.tianyi_companion.hunt_killed_ban"), true);
                 }
             }
         }

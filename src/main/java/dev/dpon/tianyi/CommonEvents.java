@@ -27,8 +27,9 @@ public final class CommonEvents {
         }
         clone.putInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY,
                 original.getInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY));
-        if (original.getBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY)) {
-            clone.putBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY, true);
+        int banCost = original.getInt(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
+        if (banCost > 0) {
+            clone.putInt(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY, banCost);
         }
         if (original.getBoolean(TianyiCompanionMod.PLAYER_BANISH_NOTICE_KEY)
                 && event.getEntity() instanceof ServerPlayer player) {
@@ -47,8 +48,9 @@ public final class CommonEvents {
         data.putInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY, deaths);
         if (deaths < TianyiEntity.HUNT_DEATHS_TO_BAN) return;
         TianyiHuntManager.endHunt(player.getUUID());
-        data.putBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY, true);
+        data.putInt(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY, TianyiEntity.XIAOLONGBAO_FORGIVE_COUNT);
         data.putBoolean(TianyiCompanionMod.PLAYER_BANISH_NOTICE_KEY, true);
+        TianyiCompanionMod.award(player, "hunt_banished");
         TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
         if (tianyi != null) {
             player.getPersistentData().remove(TianyiCompanionMod.OWNER_ENTITY_KEY);

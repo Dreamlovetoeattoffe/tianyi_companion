@@ -38,14 +38,14 @@ public final class CompanionSummonItem extends Item {
             return InteractionResult.FAIL;
         }
 
-        if (player.getPersistentData().getBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY)) {
-            if (TianyiCompanionMod.consumeItems(player, TianyiCompanionMod.XIAOLONGBAO.get(),
-                    TianyiEntity.XIAOLONGBAO_FORGIVE_COUNT)) {
-                player.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY);
+        int banCost = player.getPersistentData().getInt(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
+        if (banCost > 0) {
+            if (TianyiCompanionMod.consumeItems(player, TianyiCompanionMod.XIAOLONGBAO.get(), banCost)) {
+                player.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
                 player.getPersistentData().remove(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY);
-                player.displayClientMessage(Component.translatable("message.tianyi_companion.summon_debt_paid"), false);
+                player.displayClientMessage(Component.translatable("message.tianyi_companion.summon_debt_paid", banCost), false);
             } else {
-                player.displayClientMessage(Component.translatable("message.tianyi_companion.summon_refused"), true);
+                player.displayClientMessage(Component.translatable("message.tianyi_companion.summon_refused", banCost), true);
                 return InteractionResult.FAIL;
             }
         }

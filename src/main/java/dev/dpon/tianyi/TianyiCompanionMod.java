@@ -36,8 +36,9 @@ public final class TianyiCompanionMod {
     public static final String OWNER_ENTITY_KEY = "TianyiCompanionEntity";
     /** Times the player died to their hunting Tianyi; at the cap she stops and is dismissed. */
     public static final String PLAYER_HUNT_DEATHS_KEY = "TianyiHuntDeaths";
-    /** Set when the hunt banishes Tianyi; summoning stays blocked until xiaolongbao are paid. */
-    public static final String PLAYER_SUMMON_BAN_KEY = "TianyiSummonBanned";
+    /** Set when the hunt banishes Tianyi; summoning stays blocked until that many
+     *  xiaolongbao are paid (0 or absent = no ban). */
+    public static final String PLAYER_SUMMON_BAN_COST_KEY = "TianyiSummonBanCost";
     /** One-shot flag to tell the player on respawn that their Tianyi left them. */
     public static final String PLAYER_BANISH_NOTICE_KEY = "TianyiBanishNotice";
 
