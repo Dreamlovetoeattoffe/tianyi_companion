@@ -38,7 +38,6 @@ public class TianyiCombatGoal extends Goal {
     public void tick() {
         LivingEntity target = mob.getTarget();
         if (target == null || !target.isAlive()) return;
-        mob.equipItemFromSlotZero();
         if (mob.tickCount < nextAttackTime) return;
 
         boolean melee = TianyiEntity.isMeleeWeapon(mob.getMainHandItem());

@@ -43,10 +43,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.MaceItem;
 import net.minecraft.world.item.ProjectileWeaponItem;
+import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
@@ -62,6 +68,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int MAX_AFFINITY = 712_712;
     /** Number of skin variants: 0 = default, 1..5 = extra. */
     public static final int MAX_SKIN_INDEX = 5;
+    /** Inventory slot she wields as a weapon: the first slot of the last 3x9 row. */
+    public static final int WEAPON_SLOT = 18;
     private static final String[] SKIN_KEYS = {
             "skin.tianyi_companion.default",
             "skin.tianyi_companion.original",
@@ -139,7 +147,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 .add(Attributes.MAX_HEALTH, 20.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.30D)
                 .add(Attributes.FOLLOW_RANGE, 24.0D)
-                .add(Attributes.ARMOR, 4.0D);
+                .add(Attributes.ARMOR, 4.0D)
+                .add(Attributes.ATTACK_DAMAGE, 2.0D);
     }
 
     @Override
@@ -270,8 +279,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public void performRangedAttack(LivingEntity target, float distanceFactor) {
         if (level().isClientSide || getAffinity() < 200) return;
         ItemStack weapon = getMainHandItem();
-        if (weapon.getItem() instanceof ProjectileWeaponItem) {
-            fireArrow(target, weapon);
+        if (isRangedWeapon(weapon)) {
+            fireRangedProjectile(target, weapon);
             return;
         }
         NoteProjectile note = new NoteProjectile(level(), this);
@@ -283,7 +292,17 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         level().playSound(null, blockPosition(), SoundEvents.NOTE_BLOCK_HARP.value(), SoundSource.NEUTRAL, 0.8F, 1.4F);
     }
 
-    private void fireArrow(LivingEntity target, ItemStack weapon) {
+    private void fireRangedProjectile(LivingEntity target, ItemStack weapon) {
+        if (weapon.getItem() instanceof TridentItem) {
+            ThrownTrident trident = new ThrownTrident(level(), this, weapon.copy());
+            double dx = target.getX() - getX();
+            double dy = target.getY(0.5D) - getY(0.5D);
+            double dz = target.getZ() - getZ();
+            trident.shoot(dx, dy, dz, 1.8F, 1.0F);
+            level().addFreshEntity(trident);
+            level().playSound(null, blockPosition(), SoundEvents.TRIDENT_THROW.value(), SoundSource.NEUTRAL, 1.0F, 1.0F);
+            return;
+        }
         Arrow arrow = new Arrow(level(), this, new ItemStack(Items.ARROW), weapon);
         arrow.setBaseDamage(2.5D);
         double dx = target.getX() - getX();
@@ -294,31 +313,44 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         level().playSound(null, blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.NEUTRAL, 1.0F, 1.0F);
     }
 
-    /** Equips the weapon stored in inventory slot 0 into her main hand, if any. */
-    public void equipItemFromSlotZero() {
+    /** Equips the weapon stored in inventory slot {@link #WEAPON_SLOT} into her main hand immediately. */
+    public void updateEquippedWeapon() {
         if (level().isClientSide) return;
-        ItemStack slotZero = companionInventory.getItem(0);
+        ItemStack weapon = companionInventory.getItem(WEAPON_SLOT);
         ItemStack held = getMainHandItem();
-        if (isWieldableWeapon(slotZero)) {
-            if (!ItemStack.isSameItemSameComponents(held, slotZero)) {
-                setItemSlot(EquipmentSlot.MAINHAND, slotZero.copy());
+        if (isWieldableWeapon(weapon)) {
+            if (!ItemStack.isSameItemSameComponents(held, weapon)) {
+                setItemSlot(EquipmentSlot.MAINHAND, weapon.copy());
             }
         } else if (!held.isEmpty()) {
             setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
         }
     }
 
-    /** True if the stack is a bow or crossbow. */
+    /** True if the stack is a bow, crossbow or trident (ranged combat). */
     public static boolean isRangedWeapon(ItemStack stack) {
-        return stack.getItem() instanceof ProjectileWeaponItem;
+        if (stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        return item instanceof ProjectileWeaponItem || item instanceof TridentItem;
     }
 
-    /** True if the stack is a weapon usable in melee (has base attack damage). */
+    /**
+     * True if the stack can be swung as a melee weapon. Covers all vanilla melee
+     * tools/weapons (class checks), items registered to the vanilla weapon/tool
+     * tags (the common way mods declare weapons), and any item exposing a mainhand
+     * attack-damage modifier through the vanilla item system.
+     */
     public static boolean isMeleeWeapon(ItemStack stack) {
         if (stack.isEmpty() || isRangedWeapon(stack)) return false;
+        Item item = stack.getItem();
+        if (item instanceof TieredItem || item instanceof MaceItem) return true;
+        if (stack.is(ItemTags.SWORDS) || stack.is(ItemTags.AXES) || stack.is(ItemTags.PICKAXES)
+                || stack.is(ItemTags.SHOVELS) || stack.is(ItemTags.HOES)
+                || stack.is(ItemTags.MACE_ENCHANTABLE) || stack.is(ItemTags.SHARP_WEAPON_ENCHANTABLE)) {
+            return true;
+        }
         for (ItemAttributeModifiers.Entry entry : stack.getAttributeModifiers().modifiers()) {
-            if (entry.attribute().is(Attributes.ATTACK_DAMAGE)
-                    && entry.modifier().operation() == AttributeModifier.Operation.ADD_VALUE) {
+            if (entry.attribute().is(Attributes.ATTACK_DAMAGE) && entry.slot().test(EquipmentSlot.MAINHAND)) {
                 return true;
             }
         }
@@ -330,20 +362,29 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         return stack != null && !stack.isEmpty() && (isRangedWeapon(stack) || isMeleeWeapon(stack));
     }
 
-    /** Swings the weapon held in the main hand at the target. */
+    /** Swings the weapon held in the main hand at the target, applying its full
+     *  attack-damage modifiers (any operation) plus offensive enchantments. */
     public void performMeleeAttack(LivingEntity target) {
         if (level().isClientSide) return;
         ItemStack weapon = getMainHandItem();
-        float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE);
+        double base = getAttributeValue(Attributes.ATTACK_DAMAGE);
+        double damage = base;
         for (ItemAttributeModifiers.Entry entry : weapon.getAttributeModifiers().modifiers()) {
-            if (entry.attribute().is(Attributes.ATTACK_DAMAGE)
-                    && entry.modifier().operation() == AttributeModifier.Operation.ADD_VALUE) {
-                damage += (float) entry.modifier().amount();
+            if (!entry.attribute().is(Attributes.ATTACK_DAMAGE) || !entry.slot().test(EquipmentSlot.MAINHAND)) continue;
+            AttributeModifier modifier = entry.modifier();
+            switch (modifier.operation()) {
+                case ADD_VALUE -> damage += modifier.amount();
+                case ADD_MULTIPLIED_BASE -> damage += base * modifier.amount();
+                case ADD_MULTIPLIED_TOTAL -> damage *= 1.0D + modifier.amount();
             }
         }
-        boolean hurt = target.hurt(level().damageSources().mobAttack(this), damage);
+        ServerLevel serverLevel = (ServerLevel) level();
+        DamageSource source = serverLevel.damageSources().mobAttack(this);
+        float totalDamage = EnchantmentHelper.modifyDamage(serverLevel, weapon, target, source, (float) damage);
+        boolean hurt = target.hurt(source, totalDamage);
         if (hurt) {
             target.knockback(0.4F, getX() - target.getX(), getZ() - target.getZ());
+            EnchantmentHelper.doPostAttackEffectsWithItemSource(serverLevel, target, source, weapon);
         }
         swing(InteractionHand.MAIN_HAND);
     }
@@ -372,6 +413,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             }
         }
         if (!level().isClientSide) TianyiBuildEngine.tick(this);
+        if (!level().isClientSide) updateEquippedWeapon();
         if (careCooldown > 0) careCooldown--;
         if (!level().isClientSide && tickCount % 100 == 0 && getAffinity() >= 600
                 && getOwner() instanceof ServerPlayer nearbyOwner && distanceToSqr(nearbyOwner) < 144.0D) {
@@ -586,10 +628,16 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     @Override
     public boolean hurt(DamageSource source, float amount) {
         boolean hurt = super.hurt(source, amount);
-        if (hurt && !level().isClientSide && source.getEntity() instanceof ServerPlayer attacker) {
-            changeAffinity(-5);
-            TianyiCompanionMod.award(attacker, "hurt_tianyi");
-            attacker.displayClientMessage(Component.translatable("message.tianyi_companion.affinity_lost"), true);
+        if (hurt && !level().isClientSide) {
+            if (source.getEntity() instanceof LivingEntity attacker && attacker.isAlive()
+                    && !attacker.is(this) && !isOwnedBy(attacker)) {
+                setTarget(attacker);
+            }
+            if (source.getEntity() instanceof ServerPlayer attacker) {
+                changeAffinity(-5);
+                TianyiCompanionMod.award(attacker, "hurt_tianyi");
+                attacker.displayClientMessage(Component.translatable("message.tianyi_companion.affinity_lost"), true);
+            }
         }
         return hurt;
     }
