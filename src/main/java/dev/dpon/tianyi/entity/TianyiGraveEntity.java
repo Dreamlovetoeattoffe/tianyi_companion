@@ -34,6 +34,11 @@ public final class TianyiGraveEntity extends Entity {
         entityData.set(AFFINITY, affinity);
     }
 
+    /** The UUID of the player whose Tianyi this grave belongs to. */
+    public Optional<UUID> getOwnerUUID() {
+        return entityData.get(OWNER);
+    }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(OWNER, Optional.empty());

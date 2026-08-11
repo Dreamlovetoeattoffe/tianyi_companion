@@ -2,6 +2,7 @@ package dev.dpon.tianyi.item;
 
 import dev.dpon.tianyi.TianyiCompanionMod;
 import dev.dpon.tianyi.entity.TianyiEntity;
+import dev.dpon.tianyi.entity.TianyiGraveEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,13 @@ public final class CompanionSummonItem extends Item {
             return InteractionResult.FAIL;
         }
 
+        // Tianyi cannot be summoned anew while her grave from the last death still stands.
+        if (findGrave(player) != null) {
+            player.displayClientMessage(Component.translatable("message.tianyi_companion.grave_blocks_summon")
+                    .withStyle(ChatFormatting.AQUA), true);
+            return InteractionResult.FAIL;
+        }
+
         int banCost = player.getPersistentData().getInt(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
         if (banCost > 0) {
             if (TianyiCompanionMod.consumeItems(player, TianyiCompanionMod.XIAOLONGBAO.get(), banCost)) {
@@ -70,6 +78,19 @@ public final class CompanionSummonItem extends Item {
         player.displayClientMessage(Component.translatable(rebirth
                 ? "message.tianyi_companion.reborn" : "message.tianyi_companion.summoned"), false);
         return InteractionResult.CONSUME;
+    }
+
+    private static TianyiGraveEntity findGrave(ServerPlayer player) {
+        for (ServerLevel level : player.server.getAllLevels()) {
+            for (Entity entity : level.getAllEntities()) {
+                if (entity instanceof TianyiGraveEntity grave
+                        && grave.getOwnerUUID().isPresent()
+                        && grave.getOwnerUUID().get().equals(player.getUUID())) {
+                    return grave;
+                }
+            }
+        }
+        return null;
     }
 
     private static Entity findExisting(ServerPlayer player) {

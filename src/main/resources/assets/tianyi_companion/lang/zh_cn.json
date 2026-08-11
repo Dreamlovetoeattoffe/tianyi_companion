@@ -38,6 +38,7 @@
   "message.tianyi_companion.fed_owner": "天依从背包取出食物照顾了你",
   "message.tianyi_companion.healed_owner": "天依用歌声治疗了你",
   "message.tianyi_companion.grave_placed": "天依倒下了……她在原地留下了一座墓碑",
+  "message.tianyi_companion.grave_blocks_summon": "天依的墓碑还在，先取回她的爱心吧",
   "message.tianyi_companion.not_your_grave": "只有天依的主人能触碰这座墓碑",
   "message.tianyi_companion.heart_obtained": "你从墓碑中取回了天依爱心",
   "command.tianyi_companion.not_player": "只有玩家可以执行这条指令",
