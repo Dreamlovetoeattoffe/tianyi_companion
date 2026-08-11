@@ -79,6 +79,10 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int HATE_THRESHOLD = -100;
     /** At this affinity every Tianyi on the server hunts the player. */
     public static final int GLOBAL_HUNT_THRESHOLD = -200;
+    /** Number of times the hunted player must die to Tianyi before she stops and is dismissed. */
+    public static final int HUNT_DEATHS_TO_BAN = 7;
+    /** Xiaolongbao Tianyi confiscates to forgive a hunted player, or to accept a banned summon. */
+    public static final int XIAOLONGBAO_FORGIVE_COUNT = 64;
     /** Number of skin variants: 0 = default, 1..5 = extra. */
     public static final int MAX_SKIN_INDEX = 5;
     /** Inventory slot she wields as a weapon: the first slot of the last 3x9 row. */
@@ -468,7 +472,11 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         }
         if (getAffinity() <= GLOBAL_HUNT_THRESHOLD) {
             if (getOwner() instanceof ServerPlayer owner) {
-                TianyiHuntManager.startHunt(owner.getUUID(), getHateWeapon());
+                if (tickCount % 40 == 0 && tryConfiscateXiaolongbao(owner)) {
+                    forgiveHuntedOwner(owner);
+                } else {
+                    TianyiHuntManager.startHunt(owner.getUUID(), getHateWeapon());
+                }
             }
         } else if (getOwnerUUID() != null && TianyiHuntManager.isHunted(getOwnerUUID())
                 && getAffinity() > GLOBAL_HUNT_THRESHOLD) {
@@ -477,6 +485,31 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         if (tickCount % 20 == 0) {
             globalHuntStep();
         }
+    }
+
+    /** Confiscates {@link #XIAOLONGBAO_FORGIVE_COUNT} xiaolongbao from the player's
+     *  inventory. Returns true only if the full amount was taken. */
+    private boolean tryConfiscateXiaolongbao(ServerPlayer player) {
+        if (TianyiCompanionMod.countItems(player, TianyiCompanionMod.XIAOLONGBAO.get())
+                < XIAOLONGBAO_FORGIVE_COUNT) {
+            return false;
+        }
+        TianyiCompanionMod.consumeItems(player, TianyiCompanionMod.XIAOLONGBAO.get(), XIAOLONGBAO_FORGIVE_COUNT);
+        return true;
+    }
+
+    /** Ends the global hunt: the player paid in xiaolongbao, so she forgives them,
+     *  restores affinity to 0 and stops hunting. */
+    private void forgiveHuntedOwner(ServerPlayer owner) {
+        setAffinity(0);
+        TianyiHuntManager.endHunt(owner.getUUID());
+        owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY);
+        owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY);
+        hateGrabbedWeapon = false;
+        if (getTarget() == owner) setTarget(null);
+        owner.displayClientMessage(Component.translatable("message.tianyi_companion.hunt_forgiven"), true);
+        ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 1.3D, getZ(), 24, 0.5D, 0.7D, 0.5D, 0.1D);
+        level().playSound(null, blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 1.0F, 1.3F);
     }
 
     /** Every registered hunt is where all Tianyi converge: equip the recorded

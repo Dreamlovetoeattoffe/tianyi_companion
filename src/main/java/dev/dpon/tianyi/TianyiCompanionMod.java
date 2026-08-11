@@ -16,6 +16,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
 import dev.dpon.tianyi.entity.TianyiEntity;
@@ -33,6 +34,12 @@ import java.util.UUID;
 public final class TianyiCompanionMod {
     public static final String MOD_ID = "tianyi_companion";
     public static final String OWNER_ENTITY_KEY = "TianyiCompanionEntity";
+    /** Times the player died to their hunting Tianyi; at the cap she stops and is dismissed. */
+    public static final String PLAYER_HUNT_DEATHS_KEY = "TianyiHuntDeaths";
+    /** Set when the hunt banishes Tianyi; summoning stays blocked until xiaolongbao are paid. */
+    public static final String PLAYER_SUMMON_BAN_KEY = "TianyiSummonBanned";
+    /** One-shot flag to tell the player on respawn that their Tianyi left them. */
+    public static final String PLAYER_BANISH_NOTICE_KEY = "TianyiBanishNotice";
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);
@@ -80,6 +87,7 @@ public final class TianyiCompanionMod {
         TABS.register(modBus);
         modBus.addListener(this::createAttributes);
         NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerClone);
+        NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerDeath);
         NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerWakeUp);
         NeoForge.EVENT_BUS.addListener(CommonEvents::onPlayerChangedDimension);
         NeoForge.EVENT_BUS.addListener(TianyiCommands::register);
@@ -119,5 +127,30 @@ public final class TianyiCompanionMod {
         }
         player.getPersistentData().remove(OWNER_ENTITY_KEY);
         return null;
+    }
+
+    /** Counts every stack of the item across the player's whole inventory. */
+    public static int countItems(ServerPlayer player, Item item) {
+        int count = 0;
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (stack.is(item)) count += stack.getCount();
+        }
+        return count;
+    }
+
+    /** Removes {@code amount} of the item from the player's inventory. Returns
+     *  false (without removing anything) if the player has fewer than that. */
+    public static boolean consumeItems(ServerPlayer player, Item item, int amount) {
+        if (countItems(player, item) < amount) return false;
+        int remaining = amount;
+        for (int slot = 0; slot < player.getInventory().getContainerSize() && remaining > 0; slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (!stack.is(item)) continue;
+            int taken = Math.min(stack.getCount(), remaining);
+            stack.shrink(taken);
+            remaining -= taken;
+        }
+        return true;
     }
 }

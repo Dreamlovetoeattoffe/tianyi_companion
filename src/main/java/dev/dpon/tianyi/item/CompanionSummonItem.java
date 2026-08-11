@@ -38,6 +38,18 @@ public final class CompanionSummonItem extends Item {
             return InteractionResult.FAIL;
         }
 
+        if (player.getPersistentData().getBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY)) {
+            if (TianyiCompanionMod.consumeItems(player, TianyiCompanionMod.XIAOLONGBAO.get(),
+                    TianyiEntity.XIAOLONGBAO_FORGIVE_COUNT)) {
+                player.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY);
+                player.getPersistentData().remove(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY);
+                player.displayClientMessage(Component.translatable("message.tianyi_companion.summon_debt_paid"), false);
+            } else {
+                player.displayClientMessage(Component.translatable("message.tianyi_companion.summon_refused"), true);
+                return InteractionResult.FAIL;
+            }
+        }
+
         BlockPos spawnPos = context.getClickedPos().relative(context.getClickedFace());
         int terrainY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 spawnPos.getX(), spawnPos.getZ());

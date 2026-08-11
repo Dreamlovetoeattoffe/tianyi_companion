@@ -1,10 +1,17 @@
 package dev.dpon.tianyi;
 
 import dev.dpon.tianyi.entity.TianyiEntity;
+import dev.dpon.tianyi.entity.TianyiHuntManager;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.portal.DimensionTransition;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 
@@ -12,11 +19,48 @@ public final class CommonEvents {
     private CommonEvents() {}
 
     public static void onPlayerClone(PlayerEvent.Clone event) {
-        if (event.getOriginal().getPersistentData().hasUUID(TianyiCompanionMod.OWNER_ENTITY_KEY)) {
-            event.getEntity().getPersistentData().putUUID(
-                    TianyiCompanionMod.OWNER_ENTITY_KEY,
-                    event.getOriginal().getPersistentData().getUUID(TianyiCompanionMod.OWNER_ENTITY_KEY));
+        CompoundTag original = event.getOriginal().getPersistentData();
+        CompoundTag clone = event.getEntity().getPersistentData();
+        if (original.hasUUID(TianyiCompanionMod.OWNER_ENTITY_KEY)) {
+            clone.putUUID(TianyiCompanionMod.OWNER_ENTITY_KEY,
+                    original.getUUID(TianyiCompanionMod.OWNER_ENTITY_KEY));
         }
+        clone.putInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY,
+                original.getInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY));
+        if (original.getBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY)) {
+            clone.putBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY, true);
+        }
+        if (original.getBoolean(TianyiCompanionMod.PLAYER_BANISH_NOTICE_KEY)
+                && event.getEntity() instanceof ServerPlayer player) {
+            player.displayClientMessage(Component.translatable("message.tianyi_companion.hunt_banished"), true);
+        }
+        clone.remove(TianyiCompanionMod.PLAYER_BANISH_NOTICE_KEY);
+    }
+
+    /** Counts deaths at Tianyi's hands while she hunts the player. On the 7th
+     *  death she stops hunting, is dismissed, and the next summon is refused. */
+    public static void onPlayerDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || player.level().isClientSide) return;
+        if (!isTianyiKill(event.getSource()) || !TianyiHuntManager.isHunted(player.getUUID())) return;
+        CompoundTag data = player.getPersistentData();
+        int deaths = data.getInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY) + 1;
+        data.putInt(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY, deaths);
+        if (deaths < TianyiEntity.HUNT_DEATHS_TO_BAN) return;
+        TianyiHuntManager.endHunt(player.getUUID());
+        data.putBoolean(TianyiCompanionMod.PLAYER_SUMMON_BAN_KEY, true);
+        data.putBoolean(TianyiCompanionMod.PLAYER_BANISH_NOTICE_KEY, true);
+        TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
+        if (tianyi != null) {
+            player.getPersistentData().remove(TianyiCompanionMod.OWNER_ENTITY_KEY);
+            tianyi.remove(Entity.RemovalReason.DISCARDED);
+        }
+    }
+
+    /** True if the kill was dealt by a Tianyi, either directly or via a projectile she fired. */
+    private static boolean isTianyiKill(DamageSource source) {
+        if (source.getEntity() instanceof TianyiEntity) return true;
+        return source.getDirectEntity() instanceof Projectile projectile
+                && projectile.getOwner() instanceof TianyiEntity;
     }
 
     /** Teleports Tianyi beside her owner after they travel through a dimension portal. */
