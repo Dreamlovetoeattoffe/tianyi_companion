@@ -3,7 +3,7 @@
   "category": "misc",
   "pattern": ["DDD", "DXD", "DDD"],
   "key": {
-    "D": { "tag": "minecraft:music_discs" },
+    "D": { "tag": "tianyi_companion:music_discs" },
     "X": { "item": "tianyi_companion:xiaolongbao" }
   },
   "result": { "id": "tianyi_companion:tian_core_audio", "count": 1 }
