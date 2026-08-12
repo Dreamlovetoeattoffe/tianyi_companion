@@ -22,8 +22,8 @@ import java.util.List;
  *       recipe's ingredients; feeding it to Tianyi grants a flat +50 affinity.</li>
  *   <li>{@link Grade#TIAN_DIAN}: feeding grants 10000..20000 random affinity
  *       (exactly 12712 makes her hand over the 音之精灵·天钿 accessory), and a
- *       player eating one gains infinite saturation but forces affinity to -100
- *       and directly starts a global hunt against them.</li>
+ *       player eating one gains infinite saturation but forces her affinity to
+ *       -100, dropping her into hate mode where she snatches the owner's weapon.</li>
  * </ul>
  */
 public final class TianCoreItem extends Item {
@@ -65,8 +65,6 @@ public final class TianCoreItem extends Item {
         if (grade != Grade.TIAN_DIAN) return result;
         if (level.isClientSide || !(livingEntity instanceof ServerPlayer player)) return result;
         player.addEffect(new MobEffectInstance(MobEffects.SATURATION, MobEffectInstance.INFINITE_DURATION, 0));
-        // -100 hate hunt: her own Tianyi snaps to -100 and hunts the player
-        // herself (weapon grab + attack). No -200 global hunt is triggered.
         TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
         if (tianyi != null) {
             tianyi.setAffinity(TianyiEntity.HATE_THRESHOLD);
