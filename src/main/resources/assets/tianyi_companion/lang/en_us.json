@@ -25,7 +25,7 @@
   "tooltip.tianyi_companion.spirit_tian.peace": "Kept in your inventory, she never attacks you even at negative affinity",
   "message.tianyi_companion.tian_feed": "Tianyi happily ate the Tian Dian core, gaining %s affinity (now %s)",
   "message.tianyi_companion.spirit_tian_gift": "Among the singing ripples Tianyi hands you a rare treasure - the Sound Spirit - Tian Dian!",
-  "message.tianyi_companion.tian_eaten": "You ate the Tian Dian core and gained infinite saturation! But Tianyi's affinity dropped to -100 and every Tianyi is now hunting you!",
+  "message.tianyi_companion.tian_eaten": "You ate the Tian Dian core and gained infinite saturation! But Tianyi's affinity dropped to -100, and she herself is now hunting you!",
   "message.tianyi_companion.already_has_companion": "You already have a Tianyi companion.",
   "message.tianyi_companion.summoned": "A song answers the charm. Tianyi is here!",
   "message.tianyi_companion.reborn": "The heart beats again. Tianyi has returned!",

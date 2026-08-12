@@ -2,7 +2,6 @@ package dev.dpon.tianyi.item;
 
 import dev.dpon.tianyi.TianyiCompanionMod;
 import dev.dpon.tianyi.entity.TianyiEntity;
-import dev.dpon.tianyi.entity.TianyiHuntManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -66,15 +65,11 @@ public final class TianCoreItem extends Item {
         if (grade != Grade.TIAN_DIAN) return result;
         if (level.isClientSide || !(livingEntity instanceof ServerPlayer player)) return result;
         player.addEffect(new MobEffectInstance(MobEffects.SATURATION, MobEffectInstance.INFINITE_DURATION, 0));
-        player.getPersistentData().putBoolean(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY, true);
+        // -100 hate hunt: her own Tianyi snaps to -100 and hunts the player
+        // herself (weapon grab + attack). No -200 global hunt is triggered.
         TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
         if (tianyi != null) {
             tianyi.setAffinity(TianyiEntity.HATE_THRESHOLD);
-            TianyiHuntManager.startHunt(player.getUUID(), tianyi.getHuntWeapon());
-            TianyiHuntManager.ensureHuntGroup(player, player.serverLevel());
-        } else {
-            TianyiHuntManager.startHunt(player.getUUID(), ItemStack.EMPTY);
-            TianyiHuntManager.ensureHuntGroup(player, player.serverLevel());
         }
         player.displayClientMessage(Component.translatable("message.tianyi_companion.tian_eaten"), false);
         return result;

@@ -25,7 +25,7 @@
   "tooltip.tianyi_companion.spirit_tian.peace": "带在物品栏中，天依即使负好感度也不会攻击你",
   "message.tianyi_companion.tian_feed": "天依欣然吃下了天钿，好感度增加 %s（当前：%s）",
   "message.tianyi_companion.spirit_tian_gift": "天依在歌声的波动中取出稀世的礼物——音之精灵·天钿——递给了你！",
-  "message.tianyi_companion.tian_eaten": "你吃下了天钿，获得无限的饱和！但天依的好感度跌至 -100，全服的天依开始追杀你！",
+  "message.tianyi_companion.tian_eaten": "你吃下了天钿，获得无限的饱和！但天依的好感度跌至 -100，她开始追杀你！",
   "message.tianyi_companion.already_has_companion": "你已经拥有一位天依了",
   "message.tianyi_companion.summoned": "歌声回应了召唤，天依来到了你身边！",
   "message.tianyi_companion.reborn": "爱心重新开始跳动，天依复活了！",

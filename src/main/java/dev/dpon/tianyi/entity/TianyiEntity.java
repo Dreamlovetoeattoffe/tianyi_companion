@@ -613,10 +613,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 }
             }
         } else if (getOwnerUUID() != null && TianyiHuntManager.isHunted(getOwnerUUID())
-                && getAffinity() > GLOBAL_HUNT_THRESHOLD
-                && !isForcedHuntHold()) {
+                && getAffinity() > GLOBAL_HUNT_THRESHOLD) {
             TianyiHuntManager.endHunt(getOwnerUUID());
-            clearForcedHuntFlag();
         }
         if (tickCount % 20 == 0) {
             globalHuntStep();
@@ -629,20 +627,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         if (!(getOwner() instanceof ServerPlayer owner)) return false;
         if (!owner.getUUID().equals(player.getUUID())) return false;
         return TianyiCompanionMod.countItems(owner, TianyiCompanionMod.SPIRIT_TIAN.get()) > 0;
-    }
-
-    /** A forced hunt (from eating a 天钿) stays registered while the owner's
-     *  affinity has not yet climbed back above the -100 hate line. */
-    private boolean isForcedHuntHold() {
-        if (getAffinity() > HATE_THRESHOLD) return false;
-        return getOwner() instanceof ServerPlayer owner
-                && owner.getPersistentData().getBoolean(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
-    }
-
-    private void clearForcedHuntFlag() {
-        if (getOwner() instanceof ServerPlayer owner) {
-            owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
-        }
     }
 
     /** Confiscates {@link #XIAOLONGBAO_FORGIVE_COUNT} xiaolongbao from the player's
@@ -663,7 +647,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         TianyiHuntManager.endHunt(owner.getUUID());
         owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY);
         owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
-        owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
         hateGrabbedWeapon = false;
         if (getTarget() == owner) setTarget(null);
         TianyiCompanionMod.award(owner, "hunt_forgiven");
@@ -1148,7 +1131,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 } else {
                     owner.getPersistentData().putInt(
                             TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY, HUNT_KILL_BAN_COST);
-                    owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
                     TianyiCompanionMod.award(owner, "hunt_slayer");
                     owner.displayClientMessage(Component.translatable("message.tianyi_companion.hunt_killed_ban"), true);
                 }

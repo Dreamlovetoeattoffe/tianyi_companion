@@ -44,9 +44,6 @@ public final class TianyiCompanionMod {
     public static final String PLAYER_SUMMON_BAN_COST_KEY = "TianyiSummonBanCost";
     /** One-shot flag to tell the player on respawn that their Tianyi left them. */
     public static final String PLAYER_BANISH_NOTICE_KEY = "TianyiBanishNotice";
-    /** Set when the player eats a 天钿 food: their hunt stays active even while
-     *  their own affinity sits at -100 (below the usual -200 hunt threshold). */
-    public static final String PLAYER_FORCED_HUNT_KEY = "TianyiForcedHunt";
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);

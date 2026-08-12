@@ -50,7 +50,6 @@ public final class CommonEvents {
         if (deaths < TianyiEntity.HUNT_DEATHS_TO_BAN) return;
         TianyiHuntManager.endHunt(player.getUUID());
         data.putInt(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY, TianyiEntity.XIAOLONGBAO_FORGIVE_COUNT);
-        data.remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
         data.putBoolean(TianyiCompanionMod.PLAYER_BANISH_NOTICE_KEY, true);
         TianyiCompanionMod.award(player, "hunt_banished");
         TianyiEntity tianyi = TianyiCompanionMod.findOwnedTianyi(player);
