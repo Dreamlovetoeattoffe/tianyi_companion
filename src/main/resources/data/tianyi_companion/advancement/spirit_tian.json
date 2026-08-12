@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:gift_precious",
+  "display": {
+    "icon": { "id": "tianyi_companion:spirit_tian" },
+    "title": { "translate": "advancements.tianyi_companion.spirit_tian.title" },
+    "description": { "translate": "advancements.tianyi_companion.spirit_tian.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

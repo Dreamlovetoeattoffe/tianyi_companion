@@ -1,0 +1,13 @@
+{
+  "parent": "tianyi_companion:weapon_snatched",
+  "display": {
+    "icon": { "id": "tianyi_companion:tian_integrated_core" },
+    "title": { "translate": "advancements.tianyi_companion.tian_eaten.title" },
+    "description": { "translate": "advancements.tianyi_companion.tian_eaten.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": { "done": { "trigger": "minecraft:impossible" } }
+}

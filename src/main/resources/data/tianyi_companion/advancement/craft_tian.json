@@ -1,0 +1,18 @@
+{
+  "parent": "tianyi_companion:make_xiaolongbao",
+  "display": {
+    "icon": { "id": "tianyi_companion:tian_integrated_core" },
+    "title": { "translate": "advancements.tianyi_companion.craft_tian.title" },
+    "description": { "translate": "advancements.tianyi_companion.craft_tian.description" },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "craft": {
+      "trigger": "minecraft:recipe_crafted",
+      "conditions": { "recipe_id": "tianyi_companion:tian_integrated_core" }
+    }
+  }
+}

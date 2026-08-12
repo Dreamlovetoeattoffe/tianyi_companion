@@ -854,6 +854,9 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 } else {
                     changeAffinity(EDIBLE_FEED_GAIN);
                     heal(2.0F);
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        TianyiCompanionMod.award(serverPlayer, "core_feed");
+                    }
                     player.displayClientMessage(Component.translatable("message.tianyi_companion.affinity",
                             getAffinity(), Component.translatable(getAffinityTierKey())), true);
                 }
@@ -999,6 +1002,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     private void giveSpiritTianTo(ServerPlayer owner) {
         ItemStack spirit = new ItemStack(TianyiCompanionMod.SPIRIT_TIAN.get());
         if (!owner.getInventory().add(spirit)) owner.drop(spirit, false);
+        TianyiCompanionMod.award(owner, "spirit_tian");
         owner.displayClientMessage(Component.translatable("message.tianyi_companion.spirit_tian_gift"), false);
         ((ServerLevel) level()).sendParticles(ParticleTypes.ENCHANT, getX(), getY() + 1.2D, getZ(),
                 40, 0.5D, 0.8D, 0.5D, 0.4D);

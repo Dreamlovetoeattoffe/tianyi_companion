@@ -69,6 +69,7 @@ public final class TianCoreItem extends Item {
         if (tianyi != null) {
             tianyi.setAffinity(TianyiEntity.HATE_THRESHOLD);
         }
+        TianyiCompanionMod.award(player, "tian_eaten");
         player.displayClientMessage(Component.translatable("message.tianyi_companion.tian_eaten"), false);
         return result;
     }
