@@ -1,10 +1,16 @@
 {
-  "type": "minecraft:crafting_shaped",
+  "type": "minecraft:crafting_shapeless",
   "category": "misc",
-  "pattern": ["DDD", "DXD", "DDD"],
-  "key": {
-    "D": { "tag": "minecraft:music_discs" },
-    "X": { "item": "tianyi_companion:xiaolongbao" }
-  },
+  "ingredients": [
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "tag": "minecraft:music_discs" },
+    { "item": "tianyi_companion:xiaolongbao" }
+  ],
   "result": { "id": "tianyi_companion:tian_core_audio", "count": 1 }
 }
