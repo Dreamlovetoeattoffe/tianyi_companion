@@ -125,14 +125,17 @@ public final class TianyiScreen extends AbstractContainerScreen<TianyiMenu> {
                     + "/" + TianyiEntity.MAX_AFFINITY), 86, 42, 0x404040, false);
             int stacks = menu.getTianyi().getCompanionInventory().getItem(TianyiEntity.ACCESSORY_SLOT).getCount();
             boolean hasAccessory = stacks > 0;
-            if (menu.getTianyi().getAffinity() >= 200 || hasAccessory) {
-                graphics.drawString(font, Component.literal("音符伤害:" + menu.getTianyi().getNoteDamage()),
-                        86, 54, 0x404040, false);
-            }
+            // Note and melee damage always shown.
+            graphics.drawString(font, Component.literal("音符伤害:" + menu.getTianyi().getNoteDamage()),
+                    86, 54, 0x404040, false);
+            // The accessory +50 attack modifier is server-only and doesn't sync
+            // to the client attribute; add 50 manually for the display.
+            double atkDmg = menu.getTianyi().getAttributeValue(Attributes.ATTACK_DAMAGE);
+            if (hasAccessory) atkDmg += 50.0D;
+            graphics.drawString(font, Component.literal("近战伤害:" + String.format("%.1f", atkDmg)),
+                    86, 66, 0x404040, false);
+            // Potion effects only shown when the accessory is equipped.
             if (hasAccessory) {
-                double atkDmg = menu.getTianyi().getAttributeValue(Attributes.ATTACK_DAMAGE);
-                graphics.drawString(font, Component.literal("近战伤害:" + String.format("%.1f", atkDmg)),
-                        86, 66, 0x404040, false);
                 int yOff = 84;
                 var boost = menu.getTianyi().getEffect(MobEffects.DAMAGE_BOOST);
                 if (boost != null) {
