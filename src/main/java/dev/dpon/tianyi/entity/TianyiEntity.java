@@ -532,25 +532,16 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         int stacks = Math.min(4, companionInventory.getItem(ACCESSORY_SLOT).getCount());
         AttributeInstance health = getAttribute(Attributes.MAX_HEALTH);
         AttributeInstance attack = getAttribute(Attributes.ATTACK_DAMAGE);
+        if (health != null) health.removeModifier(ACCESSORY_MAX_HEALTH_ID);
+        if (attack != null) attack.removeModifier(ACCESSORY_ATTACK_ID);
         if (stacks > 0) {
-            boolean wasInactive = health != null && health.getModifier(ACCESSORY_MAX_HEALTH_ID) == null;
             if (health != null) health.addPermanentModifier(ACCESSORY_MAX_HEALTH);
             if (attack != null) attack.addPermanentModifier(ACCESSORY_ATTACK);
-            int amp = Math.min(3, stacks - 1);
-            addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, MobEffectInstance.INFINITE_DURATION, amp));
-            addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, MobEffectInstance.INFINITE_DURATION, amp));
-            addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, MobEffectInstance.INFINITE_DURATION, amp));
-            if (wasInactive && level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.ENCHANT, getX(), getY() + 1.2D, getZ(), 30, 0.5D, 0.8D, 0.5D, 0.3D);
-            }
-        } else {
-            if (health != null) health.removeModifier(ACCESSORY_MAX_HEALTH_ID);
-            if (attack != null) attack.removeModifier(ACCESSORY_ATTACK_ID);
-            removeEffect(MobEffects.DAMAGE_BOOST);
-            removeEffect(MobEffects.MOVEMENT_SPEED);
-            removeEffect(MobEffects.DAMAGE_RESISTANCE);
-            if (getHealth() > getMaxHealth()) setHealth(getMaxHealth());
+            addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 240, stacks - 1));
+            addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 240, stacks - 1));
+            addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 240, stacks - 1));
         }
+        if (getHealth() > getMaxHealth()) setHealth(getMaxHealth());
     }
 
     /**
