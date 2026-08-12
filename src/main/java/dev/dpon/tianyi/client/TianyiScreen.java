@@ -11,6 +11,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -121,9 +123,34 @@ public final class TianyiScreen extends AbstractContainerScreen<TianyiMenu> {
             graphics.drawString(font, Component.literal("好感度："), 86, 30, 0x404040, false);
             graphics.drawString(font, Component.literal(menu.getTianyi().getAffinity()
                     + "/" + TianyiEntity.MAX_AFFINITY), 86, 42, 0x404040, false);
-            if (menu.getTianyi().getAffinity() >= 200) {
+            int stacks = menu.getTianyi().getCompanionInventory().getItem(TianyiEntity.ACCESSORY_SLOT).getCount();
+            boolean hasAccessory = stacks > 0;
+            if (menu.getTianyi().getAffinity() >= 200 || hasAccessory) {
                 graphics.drawString(font, Component.literal("音符伤害:" + menu.getTianyi().getNoteDamage()),
                         86, 54, 0x404040, false);
+            }
+            if (hasAccessory) {
+                double atkDmg = menu.getTianyi().getAttributeValue(Attributes.ATTACK_DAMAGE);
+                graphics.drawString(font, Component.literal("近战伤害:" + String.format("%.1f", atkDmg)),
+                        86, 66, 0x404040, false);
+                int yOff = 84;
+                var boost = menu.getTianyi().getEffect(MobEffects.DAMAGE_BOOST);
+                if (boost != null) {
+                    graphics.drawString(font, Component.literal("力量 " + (boost.getAmplifier() + 1)),
+                            86, yOff, 0x404040, false);
+                    yOff += 12;
+                }
+                var speed = menu.getTianyi().getEffect(MobEffects.MOVEMENT_SPEED);
+                if (speed != null) {
+                    graphics.drawString(font, Component.literal("迅捷 " + (speed.getAmplifier() + 1)),
+                            86, yOff, 0x404040, false);
+                    yOff += 12;
+                }
+                var resist = menu.getTianyi().getEffect(MobEffects.DAMAGE_RESISTANCE);
+                if (resist != null) {
+                    graphics.drawString(font, Component.literal("抗性 " + (resist.getAmplifier() + 1)),
+                            86, yOff, 0x404040, false);
+                }
             }
         }
         graphics.drawString(font, playerInventoryTitle, 8, 156, 0x404040, false);

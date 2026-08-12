@@ -333,10 +333,16 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
 
     /** Returns the current note projectile damage, including all affinity growth. */
     public int getNoteDamage() {
-        if (getAffinity() <= HATE_THRESHOLD) return HUNT_NOTE_DAMAGE;
-        int affinity = getAffinity();
-        if (affinity <= 1_000) return Math.min(5, 1 + affinity / 200);
-        return 5 + (affinity - 1_000) / 500;
+        int base;
+        if (getAffinity() <= HATE_THRESHOLD) base = HUNT_NOTE_DAMAGE;
+        else {
+            int affinity = getAffinity();
+            if (affinity <= 1_000) base = Math.min(5, 1 + affinity / 200);
+            else base = 5 + (affinity - 1_000) / 500;
+        }
+        int stacks = Math.min(4, companionInventory.getItem(ACCESSORY_SLOT).getCount());
+        if (stacks > 0) base += 5 * stacks;
+        return base;
     }
 
     private void changeAffinity(int delta) {
