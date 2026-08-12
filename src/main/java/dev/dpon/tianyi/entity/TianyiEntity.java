@@ -341,7 +341,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             else base = 5 + (affinity - 1_000) / 500;
         }
         int stacks = Math.min(4, companionInventory.getItem(ACCESSORY_SLOT).getCount());
-        if (stacks > 0) base += 5 * stacks;
+        if (stacks > 0) base += 50;
         return base;
     }
 
