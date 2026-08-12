@@ -20,6 +20,8 @@ public class TianyiCombatGoal extends Goal {
     public boolean canUse() {
         LivingEntity target = mob.getTarget();
         if (target == null || mob.isOrderedToSit()) return false;
+        // A player holding the 音之精灵·天钿 accessory is never her target.
+        if (target instanceof Player player && mob.shouldSpare(player)) return false;
         if (mob.getTarget() instanceof Player player && TianyiHuntManager.isHunted(player.getUUID())) {
             return true;
         }

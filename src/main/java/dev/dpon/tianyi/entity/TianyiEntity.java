@@ -2,6 +2,7 @@ package dev.dpon.tianyi.entity;
 
 import dev.dpon.tianyi.TianyiCompanionMod;
 import dev.dpon.tianyi.build.TianyiBuildEngine;
+import dev.dpon.tianyi.item.TianCoreItem;
 import dev.dpon.tianyi.menu.TianyiMenu;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -29,6 +30,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -99,6 +101,21 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int MAX_SKIN_INDEX = 5;
     /** Inventory slot she wields as a weapon: the first slot of the last 3x9 row. */
     public static final int WEAPON_SLOT = 18;
+    /** Accessory slot (offhand-like) that holds the 音之精灵·天钿 stack. */
+    public static final int ACCESSORY_SLOT = 31;
+    /** Random affinity gained each time Tianyi eats an edible 天钿 core: 10000..20000. */
+    public static final int TIAN_FEED_MIN = 10_000;
+    public static final int TIAN_FEED_MAX = 20_000;
+    /** Rolling exactly this value makes Tianyi hand her owner the accessory. */
+    public static final int TIAN_FEED_MAGIC = 12_712;
+    private static final ResourceLocation ACCESSORY_MAX_HEALTH_ID =
+            ResourceLocation.fromNamespaceAndPath("tianyi_companion", "accessory_health");
+    private static final ResourceLocation ACCESSORY_ATTACK_ID =
+            ResourceLocation.fromNamespaceAndPath("tianyi_companion", "accessory_attack");
+    private static final AttributeModifier ACCESSORY_MAX_HEALTH = new AttributeModifier(
+            ACCESSORY_MAX_HEALTH_ID, 500.0D, AttributeModifier.Operation.ADD_VALUE);
+    private static final AttributeModifier ACCESSORY_ATTACK = new AttributeModifier(
+            ACCESSORY_ATTACK_ID, 50.0D, AttributeModifier.Operation.ADD_VALUE);
     private static final String[] SKIN_KEYS = {
             "skin.tianyi_companion.default",
             "skin.tianyi_companion.original",
@@ -502,7 +519,38 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 && owner.isAlive() && owner.getHealth() < owner.getMaxHealth() * 0.60F && distanceToSqr(owner) < 144.0D) {
             careForOwner(owner);
         }
+        if (!level().isClientSide && tickCount % 40 == 0) refreshAccessoryEffects();
         if (!level().isClientSide) updateHateAndHunt();
+    }
+
+    /** Refreshes the bonuses granted while the accessory slot holds a
+     *  音之精灵·天钿 stack: +500 max health, +50 attack and strength/speed/
+     *  resistance whose level equals the stack size (1..4). */
+    private void refreshAccessoryEffects() {
+        int stacks = Math.min(4, companionInventory.getItem(ACCESSORY_SLOT).getCount());
+        if (stacks > 0) {
+            AttributeInstance health = getAttribute(Attributes.MAX_HEALTH);
+            AttributeInstance attack = getAttribute(Attributes.ATTACK_DAMAGE);
+            if (health != null && health.getModifier(ACCESSORY_MAX_HEALTH_ID) == null) {
+                health.addPermanentModifier(ACCESSORY_MAX_HEALTH);
+            }
+            if (attack != null && attack.getModifier(ACCESSORY_ATTACK_ID) == null) {
+                attack.addPermanentModifier(ACCESSORY_ATTACK);
+            }
+            addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 240, stacks - 1));
+            addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 240, stacks - 1));
+            addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 240, stacks - 1));
+        } else {
+            AttributeInstance health = getAttribute(Attributes.MAX_HEALTH);
+            AttributeInstance attack = getAttribute(Attributes.ATTACK_DAMAGE);
+            if (health != null && health.getModifier(ACCESSORY_MAX_HEALTH_ID) != null) {
+                health.removeModifier(ACCESSORY_MAX_HEALTH_ID);
+            }
+            if (attack != null && attack.getModifier(ACCESSORY_ATTACK_ID) != null) {
+                attack.removeModifier(ACCESSORY_ATTACK_ID);
+            }
+            if (getHealth() > getMaxHealth()) setHealth(getMaxHealth());
+        }
     }
 
     /**
@@ -531,19 +579,24 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
             huntHealed = false;
             huntUsesNotes = false;
         }
-        if (getAffinity() <= HATE_THRESHOLD && getOwner() instanceof ServerPlayer owner) {
-            if (!hateGrabbedWeapon) {
-                hateGrabbedWeapon = grabStrongestWeaponFrom(owner);
-                if (hateGrabbedWeapon) {
-                    TianyiCompanionMod.award(owner, "weapon_snatched");
-                    owner.displayClientMessage(Component.translatable(
-                            "message.tianyi_companion.hate_grabbed_weapon"), false);
+        Player ownerPlayer = getOwner() instanceof Player ownerTmp ? ownerTmp : null;
+        if (getAffinity() <= HATE_THRESHOLD && ownerPlayer instanceof ServerPlayer owner) {
+            // Holding the 音之精灵·天钿 accessory keeps her peaceful even at -100.
+            if (!shouldSpare(owner)) {
+                if (!hateGrabbedWeapon) {
+                    hateGrabbedWeapon = grabStrongestWeaponFrom(owner);
+                    if (hateGrabbedWeapon) {
+                        TianyiCompanionMod.award(owner, "weapon_snatched");
+                        owner.displayClientMessage(Component.translatable(
+                                "message.tianyi_companion.hate_grabbed_weapon"), false);
+                    }
+                }
+                if (owner.isAlive() && getTarget() != owner) {
+                    setTarget(owner);
                 }
             }
-            if (owner.isAlive() && getTarget() != owner) {
-                setTarget(owner);
-            }
-        } else if (getTarget() == getOwner() && getAffinity() > HATE_THRESHOLD) {
+        } else if (getTarget() == ownerPlayer
+                && (getAffinity() > HATE_THRESHOLD || ownerPlayer instanceof Player spared && shouldSpare(spared))) {
             setTarget(null);
         }
         if (getAffinity() <= GLOBAL_HUNT_THRESHOLD) {
@@ -551,18 +604,42 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 if (tickCount % 40 == 0 && tryConfiscateXiaolongbao(owner)) {
                     forgiveHuntedOwner(owner);
                 } else {
-                    TianyiHuntManager.startHunt(owner.getUUID(), getHateWeapon());
+                    TianyiHuntManager.startHunt(owner.getUUID(), getHuntWeapon());
                     if (tickCount % 40 == 0) {
                         TianyiHuntManager.ensureHuntGroup(owner, (ServerLevel) level());
                     }
                 }
             }
         } else if (getOwnerUUID() != null && TianyiHuntManager.isHunted(getOwnerUUID())
-                && getAffinity() > GLOBAL_HUNT_THRESHOLD) {
+                && getAffinity() > GLOBAL_HUNT_THRESHOLD
+                && !isForcedHuntHold()) {
             TianyiHuntManager.endHunt(getOwnerUUID());
+            clearForcedHuntFlag();
         }
         if (tickCount % 20 == 0) {
             globalHuntStep();
+        }
+    }
+
+    /** True if the player carries the 音之精灵·天钿 in their inventory: Tianyi
+     *  spares her own owner even while their affinity is negative. */
+    public boolean shouldSpare(Player player) {
+        if (!(getOwner() instanceof ServerPlayer owner)) return false;
+        if (!owner.getUUID().equals(player.getUUID())) return false;
+        return TianyiCompanionMod.countItems(owner, TianyiCompanionMod.SPIRIT_TIAN.get()) > 0;
+    }
+
+    /** A forced hunt (from eating a 天钿) stays registered while the owner's
+     *  affinity has not yet climbed back above the -100 hate line. */
+    private boolean isForcedHuntHold() {
+        if (getAffinity() > HATE_THRESHOLD) return false;
+        return getOwner() instanceof ServerPlayer owner
+                && owner.getPersistentData().getBoolean(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
+    }
+
+    private void clearForcedHuntFlag() {
+        if (getOwner() instanceof ServerPlayer owner) {
+            owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
         }
     }
 
@@ -584,6 +661,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         TianyiHuntManager.endHunt(owner.getUUID());
         owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_HUNT_DEATHS_KEY);
         owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY);
+        owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
         hateGrabbedWeapon = false;
         if (getTarget() == owner) setTarget(null);
         TianyiCompanionMod.award(owner, "hunt_forgiven");
@@ -602,6 +680,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         for (Map.Entry<UUID, ItemStack> hunt : TianyiHuntManager.allHunts().entrySet()) {
             ServerPlayer target = server.getServer().getPlayerList().getPlayer(hunt.getKey());
             if (target == null || !target.isAlive()) continue;
+            // A Tianyi carrying the accessory spares her own hunted owner.
+            if (shouldSpare(target)) continue;
             double distance = distanceTo(target);
             if (distance < bestDistance) {
                 bestDistance = distance;
@@ -622,7 +702,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         }
     }
 
-    private ItemStack getHateWeapon() {
+    public ItemStack getHuntWeapon() {
         ItemStack held = getMainHandItem();
         if (isWieldableWeapon(held)) return held;
         ItemStack bagged = companionInventory.getItem(WEAPON_SLOT);
@@ -775,6 +855,26 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         }
 
         FoodProperties foodProperties = held.getFoodProperties(this);
+        if (held.getItem() instanceof TianCoreItem tianCore && tianCore.isEdible()) {
+            if (!level().isClientSide) {
+                int gain = TIAN_FEED_MIN + random.nextInt(TIAN_FEED_MAX - TIAN_FEED_MIN + 1);
+                changeAffinity(gain);
+                heal(Math.min(20.0F, gain / 1000.0F));
+                if (gain == TIAN_FEED_MAGIC && player instanceof ServerPlayer serverPlayer) {
+                    giveSpiritTianTo(serverPlayer);
+                }
+                if (player instanceof ServerPlayer serverPlayer) {
+                    TianyiCompanionMod.award(serverPlayer, "feed_tianyi");
+                    if (getAffinity() >= 100) TianyiCompanionMod.award(serverPlayer, "devoted_tianyi");
+                }
+                ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 1.3D, getZ(),
+                        12, 0.4D, 0.5D, 0.4D, 0.1D);
+                player.displayClientMessage(Component.translatable("message.tianyi_companion.tian_feed",
+                        gain, getAffinity()), true);
+                if (!player.getAbilities().instabuild) held.shrink(1);
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
         if (foodProperties != null) {
             if (!level().isClientSide) {
                 double negativeDamage = totalNegativeDamage(itemEffectsOf(foodProperties));
@@ -900,6 +1000,17 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         if (getAffinity() >= 600) return "tier.tianyi_companion.close";
         if (getAffinity() >= 200) return "tier.tianyi_companion.friend";
         return "tier.tianyi_companion.new";
+    }
+
+    /** Hands the owner the 音之精灵·天钿 accessory when a lucky roll lands on
+     *  exactly {@link #TIAN_FEED_MAGIC} affinity. */
+    private void giveSpiritTianTo(ServerPlayer owner) {
+        ItemStack spirit = new ItemStack(TianyiCompanionMod.SPIRIT_TIAN.get());
+        if (!owner.getInventory().add(spirit)) owner.drop(spirit, false);
+        owner.displayClientMessage(Component.translatable("message.tianyi_companion.spirit_tian_gift"), false);
+        ((ServerLevel) level()).sendParticles(ParticleTypes.ENCHANT, getX(), getY() + 1.2D, getZ(),
+                40, 0.5D, 0.8D, 0.5D, 0.4D);
+        level().playSound(null, blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 1.0F, 1.4F);
     }
 
     private void applyFoodEffect(ItemStack stack) {
@@ -1028,6 +1139,7 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 } else {
                     owner.getPersistentData().putInt(
                             TianyiCompanionMod.PLAYER_SUMMON_BAN_COST_KEY, HUNT_KILL_BAN_COST);
+                    owner.getPersistentData().remove(TianyiCompanionMod.PLAYER_FORCED_HUNT_KEY);
                     TianyiCompanionMod.award(owner, "hunt_slayer");
                     owner.displayClientMessage(Component.translatable("message.tianyi_companion.hunt_killed_ban"), true);
                 }

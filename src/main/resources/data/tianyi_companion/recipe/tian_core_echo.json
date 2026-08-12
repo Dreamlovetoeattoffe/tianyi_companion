@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CLQ", "IXR", "DEG"],
+  "key": {
+    "C": { "item": "minecraft:coal_ore" },
+    "L": { "item": "minecraft:lapis_ore" },
+    "Q": { "item": "minecraft:nether_quartz_ore" },
+    "I": { "item": "minecraft:iron_ore" },
+    "X": { "item": "tianyi_companion:xiaolongbao" },
+    "R": { "item": "minecraft:redstone_ore" },
+    "D": { "item": "minecraft:diamond_ore" },
+    "E": { "item": "minecraft:emerald_ore" },
+    "G": { "item": "minecraft:gold_ore" }
+  },
+  "result": { "id": "tianyi_companion:tian_core_echo", "count": 1 }
+}

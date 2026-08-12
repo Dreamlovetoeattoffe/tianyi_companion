@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "tianyi_companion:item/tian_integrated_core" }
+}

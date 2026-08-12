@@ -38,6 +38,8 @@ public final class TianyiMenu extends AbstractContainerMenu {
         addSlot(new ArmorContainerSlot(companionInventory, 28, 8, 26, EquipmentSlot.CHEST, tianyi));
         addSlot(new ArmorContainerSlot(companionInventory, 29, 8, 44, EquipmentSlot.LEGS, tianyi));
         addSlot(new ArmorContainerSlot(companionInventory, 30, 8, 62, EquipmentSlot.FEET, tianyi));
+        int accessory = TianyiEntity.ACCESSORY_SLOT;
+        addSlot(new AccessoryContainerSlot(companionInventory, accessory, 77, 44, tianyi));
 
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
@@ -77,10 +79,10 @@ public final class TianyiMenu extends AbstractContainerMenu {
         ItemStack original = source.getItem();
         ItemStack moved = original.copy();
 
-        if (index < 31) {
-            if (!moveItemStackTo(original, 31, slots.size(), true)) return empty;
+        if (index < 32) {
+            if (!moveItemStackTo(original, 32, slots.size(), true)) return empty;
         } else {
-            boolean movedToArmor = moveItemStackTo(original, 27, 31, false);
+            boolean movedToArmor = moveItemStackTo(original, 27, 32, false);
             if (!movedToArmor) movedToArmor = moveItemStackTo(original, 0, 27, false);
             if (!movedToArmor) return empty;
         }
@@ -126,6 +128,32 @@ public final class TianyiMenu extends AbstractContainerMenu {
                 default -> null;
             };
             return icon == null ? null : Pair.of(InventoryMenu.BLOCK_ATLAS, icon);
+        }
+    }
+
+    /** Offhand-like slot that only accepts the 音之精灵·天钿 accessory. */
+    private static final class AccessoryContainerSlot extends Slot {
+        private final TianyiEntity owner;
+
+        private AccessoryContainerSlot(TianyiInventoryContainer container, int index, int x, int y,
+                                       TianyiEntity owner) {
+            super(container, index, x, y);
+            this.owner = owner;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return stack.is(TianyiCompanionMod.SPIRIT_TIAN.get());
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            return 4;
+        }
+
+        @Override
+        public Pair<net.minecraft.resources.ResourceLocation, net.minecraft.resources.ResourceLocation> getNoItemIcon() {
+            return Pair.of(InventoryMenu.BLOCK_ATLAS, InventoryMenu.EMPTY_ARMOR_SLOT_SHIELD);
         }
     }
 }

@@ -4,6 +4,8 @@ import dev.dpon.tianyi.entity.NoteProjectile;
 import dev.dpon.tianyi.entity.TianyiEntity;
 import dev.dpon.tianyi.entity.TianyiGraveEntity;
 import dev.dpon.tianyi.item.CompanionSummonItem;
+import dev.dpon.tianyi.item.SpiritTianItem;
+import dev.dpon.tianyi.item.TianCoreItem;
 import dev.dpon.tianyi.menu.TianyiMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -41,6 +43,9 @@ public final class TianyiCompanionMod {
     public static final String PLAYER_SUMMON_BAN_COST_KEY = "TianyiSummonBanCost";
     /** One-shot flag to tell the player on respawn that their Tianyi left them. */
     public static final String PLAYER_BANISH_NOTICE_KEY = "TianyiBanishNotice";
+    /** Set when the player eats a 天钿 food: their hunt stays active even while
+     *  their own affinity sits at -100 (below the usual -200 hunt threshold). */
+    public static final String PLAYER_FORCED_HUNT_KEY = "TianyiForcedHunt";
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);
@@ -70,6 +75,32 @@ public final class TianyiCompanionMod {
     public static final DeferredItem<Item> REBIRTH_CHARM = ITEMS.register("rebirth_charm", () ->
             new CompanionSummonItem(true, new Item.Properties().stacksTo(1).fireResistant()));
 
+    public static final DeferredItem<Item> TIAN_CORE_AUDIO = ITEMS.register("tian_core_audio", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_CORE_ECHO = ITEMS.register("tian_core_echo", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_CORE_MATERIAL = ITEMS.register("tian_core_material", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_CORE_VISION = ITEMS.register("tian_core_vision", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_CORE_FLIGHT = ITEMS.register("tian_core_flight", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_CORE_EDIBLE = ITEMS.register("tian_core_edible", () ->
+            new TianCoreItem(true, new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(8).saturationModifier(0.6F).build())));
+    public static final DeferredItem<Item> TIAN_CORE_SPACE = ITEMS.register("tian_core_space", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_CORE_POTION = ITEMS.register("tian_core_potion", () ->
+            new TianCoreItem(false, new Item.Properties()));
+    public static final DeferredItem<Item> TIAN_INTEGRATED_CORE = ITEMS.register("tian_integrated_core", () ->
+            new TianCoreItem(true, new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(12).saturationModifier(0.9F).build())));
+    /** The accessory Tianyi wears. Stacked in her new accessory slot, its potion
+     *  effects scale with the stack (level 1..4). Kept in the player inventory it
+     *  also stops her from attacking them while the affinity is negative. */
+    public static final DeferredItem<Item> SPIRIT_TIAN = ITEMS.register("spirit_tian", () ->
+            new SpiritTianItem(new Item.Properties().stacksTo(4)));
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MAIN_TAB = TABS.register("main", () ->
             CreativeModeTab.builder().title(Component.translatable("itemGroup.tianyi_companion"))
                     .icon(() -> SUMMON_CHARM.get().getDefaultInstance())
@@ -79,6 +110,16 @@ public final class TianyiCompanionMod {
                         output.accept(SUMMON_CHARM.get());
                         output.accept(TIANYI_HEART.get());
                         output.accept(REBIRTH_CHARM.get());
+                        output.accept(TIAN_CORE_AUDIO.get());
+                        output.accept(TIAN_CORE_ECHO.get());
+                        output.accept(TIAN_CORE_MATERIAL.get());
+                        output.accept(TIAN_CORE_VISION.get());
+                        output.accept(TIAN_CORE_FLIGHT.get());
+                        output.accept(TIAN_CORE_EDIBLE.get());
+                        output.accept(TIAN_CORE_SPACE.get());
+                        output.accept(TIAN_CORE_POTION.get());
+                        output.accept(TIAN_INTEGRATED_CORE.get());
+                        output.accept(SPIRIT_TIAN.get());
                     }).build());
 
     public TianyiCompanionMod(IEventBus modBus) {

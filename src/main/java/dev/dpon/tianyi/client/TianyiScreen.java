@@ -82,6 +82,8 @@ public final class TianyiScreen extends AbstractContainerScreen<TianyiMenu> {
         for (int row = 0; row < 4; row++) {
             drawSlot(graphics, x + 8, y + 8 + row * 18);
         }
+        // Offhand-like accessory slot for the 音之精灵·天钿.
+        drawSlot(graphics, x + 77, y + 44);
         // Reserve the original character-preview area immediately to the
         // right of the armor slots and render Tianyi during the background
         // phase, matching vanilla InventoryScreen's render order.

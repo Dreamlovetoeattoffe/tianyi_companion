@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["SGD", "AXN", "ICE"],
+  "key": {
+    "S": { "item": "minecraft:stone" },
+    "G": { "item": "minecraft:granite" },
+    "D": { "item": "minecraft:deepslate" },
+    "A": { "item": "minecraft:andesite" },
+    "X": { "item": "tianyi_companion:xiaolongbao" },
+    "N": { "item": "minecraft:nether_bricks" },
+    "I": { "item": "minecraft:diorite" },
+    "C": { "item": "minecraft:calcite" },
+    "E": { "item": "minecraft:end_stone_bricks" }
+  },
+  "result": { "id": "tianyi_companion:tian_core_material", "count": 1 }
+}

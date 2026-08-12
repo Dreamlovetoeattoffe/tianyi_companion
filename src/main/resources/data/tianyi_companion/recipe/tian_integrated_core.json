@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ABC", "DTE", "FGH"],
+  "key": {
+    "A": { "item": "tianyi_companion:tian_core_audio" },
+    "B": { "item": "tianyi_companion:tian_core_echo" },
+    "C": { "item": "tianyi_companion:tian_core_material" },
+    "D": { "item": "tianyi_companion:tian_core_vision" },
+    "T": { "item": "minecraft:totem_of_undying" },
+    "E": { "item": "tianyi_companion:tian_core_flight" },
+    "F": { "item": "tianyi_companion:tian_core_edible" },
+    "G": { "item": "tianyi_companion:tian_core_space" },
+    "H": { "item": "tianyi_companion:tian_core_potion" }
+  },
+  "result": { "id": "tianyi_companion:tian_integrated_core", "count": 1 }
+}

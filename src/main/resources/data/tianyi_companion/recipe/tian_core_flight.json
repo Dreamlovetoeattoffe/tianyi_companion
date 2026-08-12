@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["SXS", "XEX", "SXS"],
+  "key": {
+    "S": { "item": "minecraft:shulker_shell" },
+    "X": { "item": "tianyi_companion:xiaolongbao" },
+    "E": { "item": "minecraft:elytra" }
+  },
+  "result": { "id": "tianyi_companion:tian_core_flight", "count": 1 }
+}

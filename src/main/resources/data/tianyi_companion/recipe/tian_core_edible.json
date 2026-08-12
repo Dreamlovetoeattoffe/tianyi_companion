@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "food",
+  "pattern": ["PMK", "AXC", "GFB"],
+  "key": {
+    "P": { "item": "minecraft:pumpkin_pie" },
+    "M": { "item": "minecraft:mushroom_stew" },
+    "K": { "item": "minecraft:cake" },
+    "A": { "item": "minecraft:enchanted_golden_apple" },
+    "X": { "item": "tianyi_companion:xiaolongbao" },
+    "C": { "item": "minecraft:golden_carrot" },
+    "G": { "item": "minecraft:glistering_melon_slice" },
+    "F": { "item": "minecraft:popped_chorus_fruit" },
+    "B": { "item": "minecraft:milk_bucket" }
+  },
+  "result": { "id": "tianyi_companion:tian_core_edible", "count": 1 }
+}

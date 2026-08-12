@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CXC", "XEX", "CXC"],
+  "key": {
+    "C": { "item": "minecraft:ender_chest" },
+    "X": { "item": "tianyi_companion:xiaolongbao" },
+    "E": { "item": "minecraft:dragon_egg" }
+  },
+  "result": { "id": "tianyi_companion:tian_core_space", "count": 1 }
+}

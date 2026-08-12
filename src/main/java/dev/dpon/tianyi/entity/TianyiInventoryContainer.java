@@ -7,13 +7,14 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 
-/** Tianyi's inventory: 27 main-inventory slots and four armor slots. */
+/** Tianyi's inventory: 27 main-inventory slots, four armor slots and one
+ *  offhand-like accessory slot (index 31) for her 音之精灵·天钿. */
 public final class TianyiInventoryContainer extends SimpleContainer {
     private final TianyiEntity owner;
 
     public TianyiInventoryContainer(TianyiEntity owner) {
-        // 27 main-inventory slots + 4 armor slots.
-        super(31);
+        // 27 main-inventory slots + 4 armor slots + 1 accessory slot.
+        super(32);
         this.owner = owner;
     }
 
@@ -29,13 +30,18 @@ public final class TianyiInventoryContainer extends SimpleContainer {
 
     @Override
     public ItemStack getItem(int index) {
-        return index < 27 ? super.getItem(index) : owner.getItemBySlot(equipmentSlot(index));
+        if (index < 27) return super.getItem(index);
+        if (index == TianyiEntity.ACCESSORY_SLOT) return super.getItem(index);
+        return owner.getItemBySlot(equipmentSlot(index));
     }
 
     @Override
     public void setItem(int index, ItemStack stack) {
         if (index < 27) {
             super.setItem(index, stack);
+        } else if (index == TianyiEntity.ACCESSORY_SLOT) {
+            super.setItem(index, stack);
+            setChanged();
         } else {
             owner.setItemSlot(equipmentSlot(index), stack);
             setChanged();
