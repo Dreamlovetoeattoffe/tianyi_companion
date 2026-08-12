@@ -17,6 +17,7 @@
   "item.tianyi_companion.tian_core_potion": "天钿核心·药水",
   "item.tianyi_companion.tian_integrated_core": "天钿",
   "item.tianyi_companion.spirit_tian": "音之精灵·天钿",
+  "tooltip.tianyi_companion.tian_core_edible": "喂给天依增加 50 好感度；饱食度为全部合成食材之和",
   "tooltip.tianyi_companion.tian_core.feed": "喂给天依可增加 10000~20000 好感度",
   "tooltip.tianyi_companion.tian_core.eat": "玩家食用获得无限饱和，但会激怒天依发起追杀",
   "tooltip.tianyi_companion.spirit_tian.equip": "装备在天依的饰品栏：+500 生命上限、+50 攻击力",

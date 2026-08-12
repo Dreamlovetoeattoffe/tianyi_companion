@@ -108,6 +108,8 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
     public static final int TIAN_FEED_MAX = 20_000;
     /** Rolling exactly this value makes Tianyi hand her owner the accessory. */
     public static final int TIAN_FEED_MAGIC = 12_712;
+    /** Flat affinity gained when feeding Tianyi the 可食用核心. */
+    public static final int EDIBLE_FEED_GAIN = 50;
     private static final ResourceLocation ACCESSORY_MAX_HEALTH_ID =
             ResourceLocation.fromNamespaceAndPath("tianyi_companion", "accessory_health");
     private static final ResourceLocation ACCESSORY_ATTACK_ID =
@@ -857,11 +859,20 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
         FoodProperties foodProperties = held.getFoodProperties(this);
         if (held.getItem() instanceof TianCoreItem tianCore && tianCore.isEdible()) {
             if (!level().isClientSide) {
-                int gain = TIAN_FEED_MIN + random.nextInt(TIAN_FEED_MAX - TIAN_FEED_MIN + 1);
-                changeAffinity(gain);
-                heal(Math.min(20.0F, gain / 1000.0F));
-                if (gain == TIAN_FEED_MAGIC && player instanceof ServerPlayer serverPlayer) {
-                    giveSpiritTianTo(serverPlayer);
+                if (tianCore.getGrade() == TianCoreItem.Grade.TIAN_DIAN) {
+                    int gain = TIAN_FEED_MIN + random.nextInt(TIAN_FEED_MAX - TIAN_FEED_MIN + 1);
+                    changeAffinity(gain);
+                    heal(Math.min(20.0F, gain / 1000.0F));
+                    if (gain == TIAN_FEED_MAGIC && player instanceof ServerPlayer serverPlayer) {
+                        giveSpiritTianTo(serverPlayer);
+                    }
+                    player.displayClientMessage(Component.translatable("message.tianyi_companion.tian_feed",
+                            gain, getAffinity()), true);
+                } else {
+                    changeAffinity(EDIBLE_FEED_GAIN);
+                    heal(2.0F);
+                    player.displayClientMessage(Component.translatable("message.tianyi_companion.affinity",
+                            getAffinity(), Component.translatable(getAffinityTierKey())), true);
                 }
                 if (player instanceof ServerPlayer serverPlayer) {
                     TianyiCompanionMod.award(serverPlayer, "feed_tianyi");
@@ -869,8 +880,6 @@ public class TianyiEntity extends TamableAnimal implements RangedAttackMob {
                 }
                 ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 1.3D, getZ(),
                         12, 0.4D, 0.5D, 0.4D, 0.1D);
-                player.displayClientMessage(Component.translatable("message.tianyi_companion.tian_feed",
-                        gain, getAffinity()), true);
                 if (!player.getAbilities().instabuild) held.shrink(1);
             }
             return InteractionResult.sidedSuccess(level().isClientSide);

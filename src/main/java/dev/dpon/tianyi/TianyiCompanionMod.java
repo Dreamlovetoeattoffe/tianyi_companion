@@ -19,6 +19,7 @@ import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
 import dev.dpon.tianyi.entity.TianyiEntity;
@@ -76,24 +77,24 @@ public final class TianyiCompanionMod {
             new CompanionSummonItem(true, new Item.Properties().stacksTo(1).fireResistant()));
 
     public static final DeferredItem<Item> TIAN_CORE_AUDIO = ITEMS.register("tian_core_audio", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_CORE_ECHO = ITEMS.register("tian_core_echo", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_CORE_MATERIAL = ITEMS.register("tian_core_material", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_CORE_VISION = ITEMS.register("tian_core_vision", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_CORE_FLIGHT = ITEMS.register("tian_core_flight", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_CORE_EDIBLE = ITEMS.register("tian_core_edible", () ->
-            new TianCoreItem(true, new Item.Properties()
-                    .food(new FoodProperties.Builder().nutrition(8).saturationModifier(0.6F).build())));
+            new TianCoreItem(TianCoreItem.Grade.EDIBLE, new Item.Properties()
+                    .food(new FoodProperties.Builder().nutrition(edibleCoreNutrition()).saturationModifier(0.6F).build())));
     public static final DeferredItem<Item> TIAN_CORE_SPACE = ITEMS.register("tian_core_space", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_CORE_POTION = ITEMS.register("tian_core_potion", () ->
-            new TianCoreItem(false, new Item.Properties()));
+            new TianCoreItem(TianCoreItem.Grade.CORE, new Item.Properties()));
     public static final DeferredItem<Item> TIAN_INTEGRATED_CORE = ITEMS.register("tian_integrated_core", () ->
-            new TianCoreItem(true, new Item.Properties()
+            new TianCoreItem(TianCoreItem.Grade.TIAN_DIAN, new Item.Properties()
                     .food(new FoodProperties.Builder().nutrition(12).saturationModifier(0.9F).build())));
     /** The accessory Tianyi wears. Stacked in her new accessory slot, its potion
      *  effects scale with the stack (level 1..4). Kept in the player inventory it
@@ -121,6 +122,21 @@ public final class TianyiCompanionMod {
                         output.accept(TIAN_INTEGRATED_CORE.get());
                         output.accept(SPIRIT_TIAN.get());
                     }).build());
+
+    /** The 可食用核心's nutrition is the sum of the saturating foods in its
+     *  crafting recipe (milk bucket is not food and contributes 0). */
+    private static int edibleCoreNutrition() {
+        Item[] ingredients = {
+                Items.PUMPKIN_PIE, Items.MUSHROOM_STEW, Items.CAKE, Items.ENCHANTED_GOLDEN_APPLE,
+                Items.GOLDEN_CARROT, Items.GLISTERING_MELON_SLICE, Items.POPPED_CHORUS_FRUIT, Items.MILK_BUCKET
+        };
+        int total = 0;
+        for (Item item : ingredients) {
+            FoodProperties food = item.getFoodProperties(new ItemStack(item), null);
+            if (food != null) total += food.nutrition();
+        }
+        return total;
+    }
 
     public TianyiCompanionMod(IEventBus modBus) {
         ENTITIES.register(modBus);
